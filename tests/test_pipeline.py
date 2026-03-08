@@ -16,12 +16,12 @@ def test_max_workers_reasonable():
 
 def test_config_imports():
     """Config module exports expected constants."""
-    from config import APP_NAME, DATABASE_URL, GEMINI_MODEL, MASTER_TAGS, AGE_TAGS
+    from config import APP_NAME, DATABASE_URL, GEMINI_MODEL, MASTER_TAGS, AUDIENCE_TAGS
     assert APP_NAME
     assert DATABASE_URL
     assert GEMINI_MODEL
     assert isinstance(MASTER_TAGS, list) and len(MASTER_TAGS) > 0
-    assert isinstance(AGE_TAGS, list) and len(AGE_TAGS) > 0
+    assert isinstance(AUDIENCE_TAGS, list) and len(AUDIENCE_TAGS) > 0
 
 
 def test_enrichment_imports():

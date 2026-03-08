@@ -13,7 +13,7 @@ Usage: python mass_harvest.py
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from database_manager import SessionLocal, init_db, Source, Venue, Event
 from adapters.whofi_adapter import WhoFiAdapter
@@ -115,6 +115,32 @@ def upsert_event(session, event_dict: dict, venue: Venue, source: Source):
             cost_cents=cost_cents,
             registration_url=reg_url or None,
         ))
+
+
+def cleanup_stale_events(session):
+    """Delete events whose dates have passed (1-day grace period).
+
+    Skips:
+    - Recurring parents (is_recurring=True) — they generate future children
+    - Events with NULL event_date_start — can't determine if stale
+    """
+    cutoff = date.today() - timedelta(days=1)
+
+    stale = session.query(Event).filter(
+        Event.event_date_start < cutoff,
+        Event.event_date_start.isnot(None),
+        Event.is_recurring.isnot(True),
+    ).all()
+
+    if not stale:
+        log.info("  No stale events to clean up.")
+        return
+
+    count = len(stale)
+    for event in stale:
+        session.delete(event)
+    session.commit()
+    log.info(f"  Deleted {count} stale events (before {cutoff}).")
 
 
 def fetch_source_events(source: Source):
@@ -238,9 +264,15 @@ def run():
     expand_recurring_events(session)
 
     # -------------------------------------------------------------------
-    # Phase 6: Geocode venues
+    # Phase 6: Cleanup stale events
     # -------------------------------------------------------------------
-    log.info("\n--- Phase 6: Geocoding Venues ---")
+    log.info("\n--- Phase 6: Cleaning Up Stale Events ---")
+    cleanup_stale_events(session)
+
+    # -------------------------------------------------------------------
+    # Phase 7: Geocode venues
+    # -------------------------------------------------------------------
+    log.info("\n--- Phase 7: Geocoding Venues ---")
     geocode_venues(session)
     session.commit()
 

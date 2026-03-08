@@ -6,7 +6,7 @@ import urllib.parse
 from geopy.geocoders import Nominatim
 from sqlalchemy import text
 from database_manager import SessionLocal, Municipality, URLSubmission, Feedback
-from config import APP_NAME, APP_TAGLINE, MASTER_TAGS, AGE_TAGS, DEFAULT_ZIP
+from config import APP_NAME, APP_TAGLINE, MASTER_TAGS, AUDIENCE_TAGS, DEFAULT_ZIP
 
 st.set_page_config(page_title=f"{APP_NAME} Explorer", page_icon="🌀", layout="wide")
 
@@ -267,6 +267,8 @@ def load_data_spatial(lat, lon, radius_miles):
             JOIN venues v ON e.venue_id = v.id
             WHERE v.location IS NOT NULL
               AND ST_DWithin(v.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_meters)
+              AND (e.event_date_start >= CURRENT_DATE - INTERVAL '1 day' OR e.event_date_start IS NULL)
+              AND e.parent_event_id IS NULL
             ORDER BY distance_miles ASC, e.event_date_start ASC NULLS LAST
         ''')
         result = session.execute(query, {"lat": lat, "lon": lon, "radius_meters": radius_meters})
@@ -348,8 +350,8 @@ with st.sidebar:
     selected_tags = st.pills("Categories", MASTER_TAGS, selection_mode="multi", default=[],
                               label_visibility="collapsed")
 
-    st.markdown("### Filter by Age")
-    selected_ages = st.pills("Ages", AGE_TAGS, selection_mode="multi", default=[],
+    st.markdown("### Filter by Audience")
+    selected_ages = st.pills("Audience", AUDIENCE_TAGS, selection_mode="multi", default=[],
                               label_visibility="collapsed")
 
     st.markdown("### Sort By")
@@ -436,7 +438,7 @@ with st.sidebar:
 st.markdown(f"""
 <div class="hero-banner">
     <h1>{APP_NAME}</h1>
-    <p>{APP_TAGLINE} — find family-friendly events near you across Rhode Island</p>
+    <p>{APP_TAGLINE} — stay in the loop with events near you across Rhode Island</p>
 </div>
 """, unsafe_allow_html=True)
 

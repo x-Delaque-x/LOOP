@@ -1,6 +1,6 @@
-# LOOP - Local Opportunities and Outdoor Play
+# LOOP - Local Outings & Opportunities Platform
 
-A localized data aggregator that centralizes children's and family events across Rhode Island. LOOP autonomously scouts municipal library and recreation calendars, categorizes events using AI, and maps them geospatially through a unified Streamlit dashboard.
+A local event discovery platform that aggregates events of all types across Rhode Island. LOOP autonomously scouts municipal calendars, categorizes events using AI, and maps them geospatially through a unified Streamlit dashboard. Stay in the loop with free events, paid events, family events, nightlife, community gatherings, and everything in between.
 
 **Live app:** Deployed on Streamlit Community Cloud (auto-deploys from this repo).
 
@@ -81,7 +81,7 @@ config.py              - Centralized configuration (DB, API keys, master tags, _
 database_manager.py    - SQLAlchemy models: Municipality, Source, Venue, Event, URLSubmission, Feedback
 app.py                 - Streamlit dashboard with PostGIS spatial queries, coverage, feedback form
 .streamlit/config.toml - Forces light theme for consistent styling
-mass_harvest.py        - Concurrent ETL pipeline (fetch, tag, upsert, normalize dates, parse cost, expand recurring, geocode)
+mass_harvest.py        - Concurrent ETL pipeline (fetch, tag, upsert, normalize dates, expand recurring, cleanup stale, geocode)
 migrate_schema.py      - One-time migration: seeds sources/venues from registry
 migrate_municipalities.py - Seeds 39 RI municipalities, links existing sources
 migrate_add_date_columns.py    - Adds date normalization columns + backfill

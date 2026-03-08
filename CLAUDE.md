@@ -9,7 +9,7 @@
 
 ## Code Conventions
 - Use `google.genai` SDK (the `google-genai` package). The old `google.generativeai` package is deprecated.
-- `config.py` is the single source of truth for constants: APP_NAME, MASTER_TAGS, AGE_TAGS, DATABASE_URL, GEMINI_MODEL. Uses `_get_secret()` helper to support both `.env` (local) and `st.secrets` (Streamlit Cloud).
+- `config.py` is the single source of truth for constants: APP_NAME, MASTER_TAGS, AUDIENCE_TAGS, DATABASE_URL, GEMINI_MODEL. Uses `_get_secret()` helper to support both `.env` (local) and `st.secrets` (Streamlit Cloud).
 - `database_manager.py` exports `SessionLocal`, `Municipality`, `Source`, `Venue`, `Event`, `URLSubmission`, `Feedback`, and `GoldenEvent` (alias for Event). Engine uses `pool_pre_ping=True`.
 - Normalized schema: `municipalities` -> `sources` -> `venues` -> `events` with foreign keys. `app.py` JOINs events to venues.
 - Municipality model: 39 RI municipalities as the organizing unit. Sources link to municipalities via `municipality_id` FK.
@@ -21,7 +21,7 @@
 
 ## Key Workflows
 - **Scout:** `py -m scout.discover` — municipality-driven discovery, scouts unscouted towns. Flags: `--rescan`, `--town "Name"`
-- **Harvest:** `py mass_harvest.py` — concurrent fetch (6 workers), batch AI tag, upsert, normalize dates, parse cost, expand recurring, geocode (~2-3 min). Some adapters use Playwright for JS-rendered pages.
+- **Harvest:** `py mass_harvest.py` — concurrent fetch (6 workers), batch AI tag, upsert, normalize dates, expand recurring, cleanup stale events, geocode (~2-3 min). Some adapters use Playwright for JS-rendered pages.
 - **Dashboard:** `streamlit run app.py` — Streamlit UI with PostGIS spatial queries, sort/date/cost filters, coverage dashboard, URL/feedback submission forms
 - **Tests:** `py -m pytest tests/ -v` — 29 smoke tests (models, adapters, municipalities, pipeline, cost parser)
 - **Migrations** (one-time, safe to re-run):

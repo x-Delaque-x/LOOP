@@ -9,26 +9,27 @@ import logging
 from typing import List, Dict
 
 from google import genai
-from config import GEMINI_API_KEY, GEMINI_MODEL, MASTER_TAGS, AGE_TAGS
+from config import GEMINI_API_KEY, GEMINI_MODEL, MASTER_TAGS, AUDIENCE_TAGS
 
 log = logging.getLogger("enrichment.tagger")
 
 client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
-SYSTEM_PROMPT = f"""You are an event categorization engine for a family activity finder called LOOP.
+SYSTEM_PROMPT = f"""You are an event categorization engine for LOOP, a local event discovery platform.
 Given event titles and descriptions, return tags for each event.
 
 Category tags (pick ALL that apply): {', '.join(MASTER_TAGS)}
 
-Age group tags (pick the MOST SPECIFIC one): {', '.join(AGE_TAGS)}
+Audience tags (pick the MOST SPECIFIC one): {', '.join(AUDIENCE_TAGS)}
 
 Rules:
 - Include at least one category tag per event
-- Include exactly one age group tag per event — use "All Ages" only if the event truly has no age restriction
-- If the title/description mentions babies, toddlers, or ages 0-2 → Baby (0-2)
-- If it mentions preschool, storytime for young children, ages 3-5 → Preschool (3-5)
-- If it mentions kids, children, elementary, ages 6-12 → Kids (6-12)
+- Include exactly one audience tag per event — use "All Ages" only if the event truly has no age restriction
+- If the event is for babies, toddlers, preschool, children, or elementary-age → Kids (0-12)
 - If it mentions teens, young adults, grades 6-12, ages 13-17 → Teens (13-17)
+- If the event is clearly for adults only (bars, wine tastings, networking, 21+) → Adults (18+)
+- If the event is for seniors or older adults → Seniors (65+)
+- If the event is family-oriented or suitable for parents with children → Family
 - If the event appears to be free, include "Free"
 - Do not invent tags outside the lists above
 """
@@ -39,14 +40,14 @@ Each entry is a string of comma-separated tags.
 Events:
 {events_text}
 
-Return ONLY a JSON array of strings like: ["Arts, Kids (6-12), Free", "STEM, Teens (13-17)"]"""
+Return ONLY a JSON array of strings like: ["Arts, Family, Free", "Nightlife, Adults (18+)"]"""
 
 SINGLE_PROMPT = """Tag this event. Return ONLY comma-separated tags, nothing else.
 
 Title: {title}
 Description: {description}
 
-Example output: Education, STEM, Kids (6-12), Free"""
+Example output: Education, STEM, Family, Free"""
 
 BATCH_SIZE = 15
 

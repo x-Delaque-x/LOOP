@@ -1,7 +1,7 @@
 # LOOP Architecture Document
 
 ## Project Overview
-**LOOP (Local Opportunities and Outdoor Play)** is a localized data aggregator that centralizes children's and family events across Rhode Island. It autonomously scouts municipal library and recreation calendars, extracts event data, categorizes it with AI, geo-enriches it, and serves it through a unified Streamlit dashboard.
+**LOOP (Local Outings & Opportunities Platform)** is a localized event aggregator that centralizes events of all types across Rhode Island. It autonomously scouts municipal library and recreation calendars, extracts event data, categorizes it with AI, geo-enriches it, and serves it through a unified Streamlit dashboard.
 
 ## Tech Stack
 - **Language:** Python 3.14
@@ -156,7 +156,7 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 ## The ETL Pipeline
 
 ```
-[1. Scout] -> [2. Extract] -> [3. Transform] -> [4. Load] -> [5. Normalize] -> [6. Expand] -> [7. Geocode] -> [8. Serve]
+[1. Scout] -> [2. Extract] -> [3. Transform] -> [4. Load] -> [5. Normalize] -> [6. Expand] -> [7. Cleanup] -> [8. Geocode] -> [9. Serve]
 ```
 
 ### 1. Scout (`py -m scout.discover`)
@@ -181,8 +181,8 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 ### 3. Transform (Gemini AI batch tagging)
 - Events batched in groups of 15 for a single Gemini API call
 - Returns JSON array of comma-separated tag strings
-- Tags from: Education, Outdoors, STEM, Arts, Active, Social, Music, Crafts
-- Age-specific tags with rules: Baby (0-2), Preschool (3-5), Kids (6-12), Teens (13-17), All Ages
+- Tags from: Arts, Music, Food & Drink, Outdoors, Sports & Fitness, Education, STEM, Community, Nightlife, Family
+- Audience tags: Family, Kids (0-12), Teens (13-17), Adults (18+), Seniors (65+), All Ages
 - Falls back to individual tagging on batch parse failures
 
 ### 4. Load (upsert to PostgreSQL)
@@ -202,16 +202,22 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 - "Every Saturday" -> 4 event rows with specific `event_date_start`, linked via `parent_event_id`
 - Idempotent: checks existing children; cleans up past expansions
 
-### 7. Geocode (venue-level geo-enrichment)
+### 7. Cleanup stale events
+- `cleanup_stale_events()` in `mass_harvest.py` deletes events whose `event_date_start` is before yesterday
+- Skips recurring parents (`is_recurring=True`) — they generate future children
+- Skips events with NULL `event_date_start` — can't determine if stale
+- UI query also filters out past events and expanded children (`parent_event_id IS NULL`) at query time
+
+### 8. Geocode (venue-level geo-enrichment)
 - **Address mapping:** `update_addresses.py` has a dictionary of 34 known RI locations -> street addresses
 - **Geocoding:** `geocoder.py` geocodes each *venue* once (not each event), writes PostGIS POINT (1 req/sec rate limit)
 
-### 8. Serve (`streamlit run app.py`)
+### 9. Serve (`streamlit run app.py`)
 - User enters ZIP code -> geocoded to lat/lon via Nominatim (cached)
 - JOIN query: `events` -> `venues` to get coordinates + cost/registration/date fields
 - PostGIS `ST_DWithin` filters events within selected radius (server-side)
 - `ST_Distance` calculates exact distance in miles
-- **Sidebar controls:** ZIP, radius, category pills, age pills, sort (Closest/Soonest), date filter (Today/This Weekend/Next 7/30 Days), cost filter (All/Free Only/Paid OK)
+- **Sidebar controls:** ZIP, radius, category pills, audience pills, sort (Closest/Soonest), date filter (Today/This Weekend/Next 7/30 Days), cost filter (All/Free Only/Paid OK)
 - **Event cards:** Cost badges (FREE green / $X yellow), recurring badge, "Sign Up" button when registration_url exists
 - Renders: hero banner, metric cards (with Free Events count), side-by-side map + scrollable event cards
 
@@ -251,14 +257,14 @@ Streamlit Community Cloud  ──────>  Supabase PostgreSQL+PostGIS
 
 ## UI Design
 - **Light sidebar:** Lavender gradient with accent-colored selected pills, native Streamlit widget contrast
-- **Sidebar controls:** ZIP code input, radius slider (1-50 miles), category pills, age pills, sort (Closest/Soonest), date filter (Any/Today/This Weekend/Next 7 Days/Next 30 Days), cost filter (All/Free Only/Paid OK)
+- **Sidebar controls:** ZIP code input, radius slider (1-50 miles), category pills, audience pills, sort (Closest/Soonest), date filter (Any/Today/This Weekend/Next 7 Days/Next 30 Days), cost filter (All/Free Only/Paid OK)
 - **Sidebar forms:** URL submission (per municipality), feedback form (name optional + freetext)
 - **Main area:** Hero banner, metric cards (Events/Venues/Free Events/Radius), side-by-side map + scrollable event cards
 - **Coverage dashboard:** Expandable section showing all 39 municipalities with color-coded library/recreation status
 - **Event cards:** Cost badge (FREE green / $X yellow), recurring badge, title, date/time/distance, tag pills, description snippet, "Sign Up" + "Get Directions" + "View Source" buttons
 - **Mobile CSS:** `@media (max-width: 768px)` — wrapping metric cards, compact hero, smaller event cards
-- **Master categories in `st.pills`:** Education, Outdoors, STEM, Arts, Active, Social, Music, Crafts
-- **Age filters in `st.pills`:** Baby (0-2), Preschool (3-5), Kids (6-12), Teens (13-17), All Ages (regex-escaped for filtering)
+- **Master categories in `st.pills`:** Arts, Music, Food & Drink, Outdoors, Sports & Fitness, Education, STEM, Community, Nightlife, Family
+- **Audience filters in `st.pills`:** Family, Kids (0-12), Teens (13-17), Adults (18+), Seniors (65+), All Ages (regex-escaped for filtering)
 
 ## Performance Optimizations
 - **Concurrent fetching:** 6-worker ThreadPoolExecutor runs all adapters in parallel (~27s vs ~120s sequential)

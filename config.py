@@ -19,7 +19,7 @@ def _get_secret(key, default=""):
 
 # Branding
 APP_NAME = "LOOP"
-APP_TAGLINE = "Local Opportunities and Outdoor Play"
+APP_TAGLINE = "Local Outings & Opportunities Platform"
 
 # Database
 DATABASE_URL = _get_secret("DATABASE_URL")
@@ -36,10 +36,15 @@ GEMINI_API_KEY = _get_secret("GEMINI_API_KEY")
 GEMINI_MODEL = "gemini-2.5-flash"
 
 # Master tags - single source of truth for AI prompts and UI filtering
-MASTER_TAGS = ["Education", "Outdoors", "STEM", "Arts", "Active", "Social", "Music", "Crafts"]
+MASTER_TAGS = [
+    "Arts", "Music", "Food & Drink", "Outdoors", "Sports & Fitness",
+    "Education", "STEM", "Community", "Nightlife", "Family",
+]
 
-# Age group tags used by the AI tagger alongside master tags
-AGE_TAGS = ["Baby (0-2)", "Preschool (3-5)", "Kids (6-12)", "Teens (13-17)", "All Ages"]
+# Audience tags used by the AI tagger alongside master tags
+AUDIENCE_TAGS = [
+    "Family", "Kids (0-12)", "Teens (13-17)", "Adults (18+)", "Seniors (65+)", "All Ages",
+]
 
 # Geocoding
 DEFAULT_ZIP = "02852"
