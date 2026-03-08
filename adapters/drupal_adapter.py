@@ -135,6 +135,12 @@ class DrupalAdapter(BaseAdapter):
         desc_el = row.select_one(".field-name-body p, .views-field-body, p, .field-type-text-with-summary")
         description = desc_el.get_text(strip=True) if desc_el else ""
 
+        cost_el = row.select_one(".field-name-field-cost, .field-name-field-price, .event-cost, .views-field-field-cost")
+        cost_text = cost_el.get_text(strip=True) if cost_el else ""
+
+        reg_el = row.select_one("a[href*='register'], a[href*='signup'], a.register-link")
+        reg_url = urljoin(page_url, reg_el["href"]) if reg_el and reg_el.get("href") else ""
+
         return {
             "title": title,
             "event_date": event_date,
@@ -142,6 +148,8 @@ class DrupalAdapter(BaseAdapter):
             "description": description[:500],
             "location_name": self._name,
             "source_url": source_url,
+            "cost_text": cost_text,
+            "registration_url": reg_url,
         }
 
     def _parse_civic_item(self, item, page_url: str) -> Dict:

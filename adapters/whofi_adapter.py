@@ -113,6 +113,13 @@ class WhoFiAdapter(BaseAdapter):
                     elif re.search(r"(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)", text):
                         event_date = event_date or text
 
+            # Look for registration link in the container
+            reg_url = ""
+            if container:
+                reg_link = container.find("a", string=re.compile(r"register|sign\s*up|rsvp", re.I))
+                if reg_link and reg_link.get("href"):
+                    reg_url = urljoin(calendar_url, reg_link["href"])
+
             events.append({
                 "title": title.strip(),
                 "event_date": event_date,
@@ -120,6 +127,7 @@ class WhoFiAdapter(BaseAdapter):
                 "description": description[:500] if description else "",
                 "location_name": self._name,
                 "source_url": event_url,
+                "registration_url": reg_url,
             })
 
         log.info(f"Fetched {len(events)} events from {self._name} (WhoFi HTML)")

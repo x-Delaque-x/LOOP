@@ -81,9 +81,12 @@ config.py              - Centralized configuration (DB, API keys, master tags, _
 database_manager.py    - SQLAlchemy models: Municipality, Source, Venue, Event, URLSubmission, Feedback
 app.py                 - Streamlit dashboard with PostGIS spatial queries, coverage, feedback form
 .streamlit/config.toml - Forces light theme for consistent styling
-mass_harvest.py        - Concurrent ETL pipeline (fetch, batch tag, upsert, geocode)
+mass_harvest.py        - Concurrent ETL pipeline (fetch, tag, upsert, normalize dates, parse cost, expand recurring, geocode)
 migrate_schema.py      - One-time migration: seeds sources/venues from registry
 migrate_municipalities.py - Seeds 39 RI municipalities, links existing sources
+migrate_add_date_columns.py    - Adds date normalization columns + backfill
+migrate_add_cost_columns.py    - Adds cost/registration columns + backfill
+migrate_add_recurrence_columns.py - Adds parent_event_id + expand recurring
 
 scout/
   ri_municipalities.py - Registry of all 39 RI municipalities
@@ -100,6 +103,9 @@ adapters/
 
 enrichment/
   gemini_tagger.py     - Gemini AI batch tagging (15 events/call)
+  date_normalizer.py   - Freeform date text -> structured Date/Time columns
+  cost_parser.py       - Cost text -> (display, cents) normalization
+  recurrence_expander.py - Recurring events -> concrete child instances (4 weeks)
   update_addresses.py  - Location name to street address mapper (34 RI venues)
   geocoder.py          - Geopy/Nominatim geocoding (venue-level)
 
@@ -107,7 +113,7 @@ tests/
   test_models.py       - Database model smoke tests
   test_adapters.py     - Adapter instantiation tests
   test_municipalities.py - Municipality registry validation
-  test_pipeline.py     - Pipeline component import tests
+  test_pipeline.py     - Pipeline component import tests + cost parser
 ```
 
 ## Deployment
@@ -124,4 +130,4 @@ tests/
 - **Geocoding:** Geopy (Nominatim/OpenStreetMap)
 - **Scraping:** Requests + BeautifulSoup4, Playwright (for JS-rendered pages)
 - **ORM:** SQLAlchemy 2.0 + GeoAlchemy2
-- **Testing:** pytest (27 smoke tests)
+- **Testing:** pytest (29 smoke tests)

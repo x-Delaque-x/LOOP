@@ -14,16 +14,21 @@
 - Normalized schema: `municipalities` -> `sources` -> `venues` -> `events` with foreign keys. `app.py` JOINs events to venues.
 - Municipality model: 39 RI municipalities as the organizing unit. Sources link to municipalities via `municipality_id` FK.
 - Adapters inherit from `adapters/base_adapter.py:BaseAdapter` and implement `fetch_events() -> List[Dict]` and `source_name` property.
-- Event dicts use keys: `title`, `event_date`, `event_time`, `description`, `location_name`, `source_url`.
+- Event dicts use keys: `title`, `event_date`, `event_time`, `description`, `location_name`, `source_url`. Optional: `cost_text`, `registration_url`.
 - Upsert natural key: `(title, event_date, venue_id)`.
 - Batch tagging: `tag_events_batch()` sends 15 events per Gemini call. Use this instead of `tag_event()` for bulk operations.
+- Event model has 10 enrichment columns: 6 date/time (`event_date_start`, `event_date_end`, `event_time_start`, `event_time_end`, `is_recurring`, `recurrence_pattern`), 3 cost (`cost_text`, `cost_cents`, `registration_url`), 1 recurring expansion (`parent_event_id`).
 
 ## Key Workflows
 - **Scout:** `py -m scout.discover` — municipality-driven discovery, scouts unscouted towns. Flags: `--rescan`, `--town "Name"`
-- **Harvest:** `py mass_harvest.py` — concurrent fetch (6 workers), batch AI tag, upsert, geocode (~2-3 min). Some adapters use Playwright for JS-rendered pages.
-- **Dashboard:** `streamlit run app.py` — Streamlit UI with PostGIS spatial queries, coverage dashboard, URL/feedback submission forms
-- **Tests:** `py -m pytest tests/ -v` — 27 smoke tests (models, adapters, municipalities, pipeline)
-- **Migrations** (run in either order — `migrate_schema.py` auto-links sources to municipalities if table exists):
+- **Harvest:** `py mass_harvest.py` — concurrent fetch (6 workers), batch AI tag, upsert, normalize dates, parse cost, expand recurring, geocode (~2-3 min). Some adapters use Playwright for JS-rendered pages.
+- **Dashboard:** `streamlit run app.py` — Streamlit UI with PostGIS spatial queries, sort/date/cost filters, coverage dashboard, URL/feedback submission forms
+- **Tests:** `py -m pytest tests/ -v` — 29 smoke tests (models, adapters, municipalities, pipeline, cost parser)
+- **Migrations** (one-time, safe to re-run):
+  - `py migrate_add_date_columns.py` — date normalization columns + backfill
+  - `py migrate_add_cost_columns.py` — cost/registration columns + backfill from tags
+  - `py migrate_add_recurrence_columns.py` — parent_event_id + expand recurring
+- **Seed Migrations** (run in either order — `migrate_schema.py` auto-links sources to municipalities if table exists):
   - `py migrate_schema.py` — seeds sources/venues from ri_sources.json
   - `py migrate_municipalities.py` — seeds 39 municipalities, links existing sources
 

@@ -83,6 +83,12 @@ class WordPressAdapter(BaseAdapter):
         desc_el = el.select_one(".mec-event-description, .mec-event-content, p")
         description = desc_el.get_text(strip=True) if desc_el else ""
 
+        cost_el = el.select_one(".mec-event-cost, .mec-cost, .event-cost")
+        cost_text = cost_el.get_text(strip=True) if cost_el else ""
+
+        reg_el = el.select_one("a.mec-booking-button, a[href*='register'], a[href*='signup']")
+        reg_url = urljoin(self.events_url, reg_el["href"]) if reg_el and reg_el.get("href") else ""
+
         return {
             "title": title,
             "event_date": event_date,
@@ -90,6 +96,8 @@ class WordPressAdapter(BaseAdapter):
             "description": description[:500],
             "location_name": self._name,
             "source_url": source_url,
+            "cost_text": cost_text,
+            "registration_url": reg_url,
         }
 
     def _parse_tec_event(self, el) -> Dict:
@@ -107,6 +115,9 @@ class WordPressAdapter(BaseAdapter):
         desc_el = el.select_one(".tribe-events-calendar-list__event-description p, .tribe-events-list-event-description p")
         description = desc_el.get_text(strip=True) if desc_el else ""
 
+        cost_el = el.select_one(".tribe-events-cost, .tribe-event-cost")
+        cost_text = cost_el.get_text(strip=True) if cost_el else ""
+
         return {
             "title": title,
             "event_date": event_date,
@@ -114,6 +125,7 @@ class WordPressAdapter(BaseAdapter):
             "description": description[:500],
             "location_name": self._name,
             "source_url": source_url,
+            "cost_text": cost_text,
         }
 
     def _parse_generic_events(self, soup) -> List[Dict]:

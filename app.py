@@ -1,4 +1,5 @@
 import re
+from datetime import date, timedelta
 import streamlit as st
 import pandas as pd
 import urllib.parse
@@ -150,6 +151,42 @@ section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"][aria-c
     background: #f0f0f0;
     color: #444 !important;
 }
+.btn-signup {
+    background: #28a745;
+    color: white !important;
+}
+
+/* ---- Cost & status badges ---- */
+.badge-free {
+    display: inline-block;
+    background: #d4edda;
+    color: #155724;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 12px;
+    margin-right: 6px;
+}
+.badge-paid {
+    display: inline-block;
+    background: #fff3cd;
+    color: #856404;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 12px;
+    margin-right: 6px;
+}
+.badge-recurring {
+    display: inline-block;
+    background: #e2e3f1;
+    color: #5a4fcf;
+    font-size: 0.72rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-right: 6px;
+}
 
 /* ---- Section headers ---- */
 .section-header {
@@ -185,6 +222,15 @@ button[data-testid="stBaseButton-pills"] {
     font-size: 0.82rem !important;
     padding: 4px 14px !important;
 }
+
+/* ---- Mobile responsive ---- */
+@media (max-width: 768px) {
+    .hero-banner { padding: 1.2rem 1rem; }
+    .hero-banner h1 { font-size: 1.6rem; }
+    .metric-row { flex-wrap: wrap; }
+    .metric-card { min-width: 45%; }
+    .event-card { padding: 1rem; }
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -211,6 +257,8 @@ def load_data_spatial(lat, lon, radius_miles):
         query = text('''
             SELECT
                 e.id, e.title, e.event_date, e.event_time, e.description, e.tags,
+                e.event_date_start, e.cost_text, e.cost_cents,
+                e.registration_url, e.is_recurring, e.recurrence_pattern,
                 v.name as location_name, v.address, e.source_url,
                 ST_Y(v.location::geometry) as latitude,
                 ST_X(v.location::geometry) as longitude,
@@ -219,7 +267,7 @@ def load_data_spatial(lat, lon, radius_miles):
             JOIN venues v ON e.venue_id = v.id
             WHERE v.location IS NOT NULL
               AND ST_DWithin(v.location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_meters)
-            ORDER BY distance_miles ASC, e.event_date ASC
+            ORDER BY distance_miles ASC, e.event_date_start ASC NULLS LAST
         ''')
         result = session.execute(query, {"lat": lat, "lon": lon, "radius_meters": radius_meters})
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
@@ -240,25 +288,42 @@ def render_event_card(row):
     desc = str(row['description']) if pd.notnull(row['description']) else ""
     desc_snippet = desc[:200] + "..." if len(desc) > 200 else desc
 
+    # Cost badge
+    cost_badge = ""
+    if pd.notnull(row.get('cost_cents')):
+        if row['cost_cents'] == 0:
+            cost_badge = '<span class="badge-free">FREE</span>'
+        else:
+            dollars = f"${row['cost_cents'] / 100:.0f}" if row['cost_cents'] % 100 == 0 else f"${row['cost_cents'] / 100:.2f}"
+            cost_badge = f'<span class="badge-paid">{dollars}</span>'
+
+    # Recurring badge
+    recurring_badge = ""
+    if row.get('is_recurring'):
+        pattern = row.get('recurrence_pattern', '') or 'Repeating'
+        recurring_badge = f'<span class="badge-recurring">{pattern}</span>'
+
     # Build tag pills
     tags_html = ""
     if pd.notnull(row['tags']) and str(row['tags']).strip():
         for tag in str(row['tags']).split(','):
             tag = tag.strip()
-            if tag:
+            if tag and tag != "Free":  # Don't show "Free" as a tag since we have the badge
                 tags_html += f'<span class="event-tag">{tag}</span>'
 
     # Build action buttons
     actions = ""
-    if pd.notnull(row['address']) and str(row['address']).strip():
+    if pd.notnull(row.get('registration_url')) and str(row.get('registration_url', '')).strip():
+        actions += f'<a href="{row["registration_url"]}" target="_blank" class="btn-signup">Sign Up</a>'
+    if pd.notnull(row.get('address')) and str(row.get('address', '')).strip():
         maps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(str(row['address']))}"
         actions += f'<a href="{maps_url}" target="_blank" class="btn-directions">Get Directions</a>'
-    if pd.notnull(row['source_url']) and str(row['source_url']).strip():
+    if pd.notnull(row.get('source_url')) and str(row.get('source_url', '')).strip():
         actions += f'<a href="{row["source_url"]}" target="_blank" class="btn-source">View Source</a>'
 
     return f"""
     <div class="event-card">
-        <div class="event-title">{title}</div>
+        <div class="event-title">{cost_badge}{recurring_badge}{title}</div>
         <div class="event-meta">
             {date_str} at {time_str} &nbsp;&bull;&nbsp; {location} &nbsp;&bull;&nbsp; {dist} mi away
         </div>
@@ -286,6 +351,18 @@ with st.sidebar:
     st.markdown("### Filter by Age")
     selected_ages = st.pills("Ages", AGE_TAGS, selection_mode="multi", default=[],
                               label_visibility="collapsed")
+
+    st.markdown("### Sort By")
+    sort_option = st.radio("Sort", ["Closest", "Soonest"], horizontal=True,
+                           label_visibility="collapsed")
+
+    st.markdown("### When")
+    date_filter = st.pills("When", ["Any", "Today", "This Weekend", "Next 7 Days", "Next 30 Days"],
+                           default="Any", label_visibility="collapsed")
+
+    st.markdown("### Cost")
+    cost_filter = st.pills("Cost", ["All", "Free Only", "Paid OK"],
+                           default="All", label_visibility="collapsed")
 
     st.markdown("---")
 
@@ -401,6 +478,49 @@ if selected_ages:
     age_mask = filtered['tags'].fillna('').str.contains(age_pattern, case=False, regex=True)
     filtered = filtered[age_mask]
 
+# Date filter
+if date_filter and date_filter != "Any":
+    today = date.today()
+    filtered['_date_parsed'] = pd.to_datetime(filtered['event_date_start'], errors='coerce')
+
+    if date_filter == "Today":
+        filtered = filtered[filtered['_date_parsed'].dt.date == today]
+    elif date_filter == "This Weekend":
+        # Saturday=5, Sunday=6
+        days_until_sat = (5 - today.weekday()) % 7
+        sat = today + timedelta(days=days_until_sat)
+        sun = sat + timedelta(days=1)
+        filtered = filtered[filtered['_date_parsed'].dt.date.isin([sat, sun])]
+    elif date_filter == "Next 7 Days":
+        end = today + timedelta(days=7)
+        filtered = filtered[(filtered['_date_parsed'].dt.date >= today) &
+                            (filtered['_date_parsed'].dt.date <= end)]
+    elif date_filter == "Next 30 Days":
+        end = today + timedelta(days=30)
+        filtered = filtered[(filtered['_date_parsed'].dt.date >= today) &
+                            (filtered['_date_parsed'].dt.date <= end)]
+
+    if '_date_parsed' in filtered.columns:
+        filtered = filtered.drop(columns=['_date_parsed'])
+
+# Cost filter
+if cost_filter == "Free Only":
+    filtered = filtered[filtered['cost_cents'] == 0]
+
+# Sort
+if sort_option == "Soonest":
+    filtered = filtered.sort_values(
+        by=['event_date_start', 'distance_miles'],
+        ascending=[True, True],
+        na_position='last'
+    ).reset_index(drop=True)
+else:
+    filtered = filtered.sort_values(
+        by=['distance_miles', 'event_date_start'],
+        ascending=[True, True],
+        na_position='last'
+    ).reset_index(drop=True)
+
 if filtered.empty:
     st.markdown("""
     <div class="empty-state">
@@ -412,8 +532,7 @@ if filtered.empty:
 
 # Metric cards
 unique_venues = filtered['location_name'].nunique()
-tag_counts = filtered['tags'].fillna('').str.split(',').explode().str.strip()
-top_tag = tag_counts[tag_counts.isin(MASTER_TAGS)].mode().iloc[0] if not tag_counts.empty else "—"
+free_count = len(filtered[filtered['cost_cents'] == 0]) if 'cost_cents' in filtered.columns else 0
 
 st.markdown(f"""
 <div class="metric-row">
@@ -426,12 +545,12 @@ st.markdown(f"""
         <div class="metric-label">Venues</div>
     </div>
     <div class="metric-card">
-        <div class="metric-value">{radius} mi</div>
-        <div class="metric-label">Search Radius</div>
+        <div class="metric-value">{free_count}</div>
+        <div class="metric-label">Free Events</div>
     </div>
     <div class="metric-card">
-        <div class="metric-value">{top_tag}</div>
-        <div class="metric-label">Top Category</div>
+        <div class="metric-value">{radius} mi</div>
+        <div class="metric-label">Search Radius</div>
     </div>
 </div>
 """, unsafe_allow_html=True)

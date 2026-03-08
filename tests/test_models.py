@@ -46,6 +46,14 @@ def test_event_relationships():
     assert hasattr(Event, "source")
 
 
+def test_event_date_and_cost_columns():
+    """Event has date normalization and cost columns."""
+    cols = {c.name for c in Event.__table__.columns}
+    assert {"event_date_start", "event_date_end", "event_time_start",
+            "event_time_end", "is_recurring", "recurrence_pattern"} <= cols
+    assert {"cost_text", "cost_cents", "registration_url"} <= cols
+
+
 def test_url_submission_columns():
     """URLSubmission has expected columns."""
     cols = {c.name for c in URLSubmission.__table__.columns}

@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    create_engine, Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+    create_engine, Column, Integer, String, Text, Boolean, DateTime, Date, Time, ForeignKey
 )
 from sqlalchemy.orm import sessionmaker, declarative_base, relationship
 from geoalchemy2 import Geography
@@ -82,6 +82,19 @@ class Event(Base):
     source_url = Column(String)
     venue_id = Column(Integer, ForeignKey("venues.id"))
     source_id = Column(Integer, ForeignKey("sources.id"))
+    # Parsed date/time fields for sorting and filtering
+    event_date_start = Column(Date)
+    event_date_end = Column(Date)
+    event_time_start = Column(Time)
+    event_time_end = Column(Time)
+    is_recurring = Column(Boolean, default=False)
+    recurrence_pattern = Column(String)
+    # Cost and registration fields
+    cost_text = Column(String)             # Display: "Free", "$5/child", "Varies"
+    cost_cents = Column(Integer)           # Queryable: 0=free, 500=$5, NULL=unknown
+    registration_url = Column(String)      # Direct signup link
+    # Recurring event expansion
+    parent_event_id = Column(Integer, ForeignKey("events.id"))  # Links child to parent recurring event
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

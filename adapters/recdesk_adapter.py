@@ -273,6 +273,22 @@ class RecDeskAdapter(BaseAdapter):
         facility = item.get("FacilityName", "")
         description = facility if facility else ""
 
+        # Extract cost — RecDesk uses varying field names
+        cost_text = ""
+        for key in ("Fee", "Cost", "Price", "FeeAmount", "EventFee"):
+            val = item.get(key)
+            if val is not None and str(val).strip():
+                cost_text = str(val).strip()
+                break
+
+        # Extract registration URL
+        reg_url = ""
+        for key in ("RegistrationUrl", "RegisterUrl", "RegistrationLink"):
+            val = item.get(key)
+            if val and str(val).strip().startswith("http"):
+                reg_url = str(val).strip()
+                break
+
         return {
             "title": title,
             "event_date": event_date,
@@ -280,6 +296,8 @@ class RecDeskAdapter(BaseAdapter):
             "description": description,
             "location_name": self._name,
             "source_url": f"{self.website}/Community/Calendar",
+            "cost_text": cost_text,
+            "registration_url": reg_url,
         }
 
     def _scrape_programs_page(self, session: requests.Session, base: str) -> List[Dict]:

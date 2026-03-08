@@ -45,6 +45,9 @@ LOOP/
 
   enrichment/
     gemini_tagger.py       # Gemini AI batch tagging (15 events/call)
+    date_normalizer.py     # Freeform date text -> Date/Time columns (14+ format cascade)
+    cost_parser.py         # Cost text -> (cost_text, cost_cents) normalization
+    recurrence_expander.py # "Every Saturday" -> 4 concrete child events
     update_addresses.py    # location_name -> street address dictionary mapper
     geocoder.py            # Nominatim geocoding -> PostGIS POINT (venue-level)
 
@@ -52,7 +55,7 @@ LOOP/
     test_models.py         # Model imports, columns, relationships, backward-compat alias
     test_adapters.py       # Adapter instantiation, BaseAdapter abstract check
     test_municipalities.py # Registry: 39 towns, valid counties, no dupes, sorted
-    test_pipeline.py       # Config/enrichment imports, adapter map completeness
+    test_pipeline.py       # Config/enrichment imports, adapter map, cost parser
 ```
 
 ## Database Schema (Normalized)
@@ -116,6 +119,16 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 | source_url | String | Link to original event page |
 | venue_id | Integer (FK) | References venues.id |
 | source_id | Integer (FK) | References sources.id |
+| event_date_start | Date | Parsed date for sort/filter |
+| event_date_end | Date | Multi-day events |
+| event_time_start | Time | Parsed start time |
+| event_time_end | Time | Parsed end time |
+| is_recurring | Boolean | Flags "Every Saturday" type events |
+| recurrence_pattern | String | Raw recurrence pattern text |
+| cost_text | String | Display: "Free", "$5/child", "Varies" |
+| cost_cents | Integer | Queryable: 0=free, 500=$5, NULL=unknown |
+| registration_url | String | Direct signup link |
+| parent_event_id | Integer (FK) | References events.id (expanded recurring child) |
 | created_at | DateTime | Record creation timestamp |
 | updated_at | DateTime | Last update timestamp |
 
@@ -143,7 +156,7 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 ## The ETL Pipeline
 
 ```
-[1. Scout]  ->  [2. Extract]  ->  [3. Transform]  ->  [4. Load]  ->  [5. Enrich]  ->  [6. Serve]
+[1. Scout] -> [2. Extract] -> [3. Transform] -> [4. Load] -> [5. Normalize] -> [6. Expand] -> [7. Geocode] -> [8. Serve]
 ```
 
 ### 1. Scout (`py -m scout.discover`)
@@ -163,7 +176,7 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 - **RecDesk Adapter:** Calendar JSON API + HTML scraping fallback
 - **WordPress Adapter:** Modern Events Calendar (MEC) + The Events Calendar (TEC)
 - **Drupal Adapter:** Drupal Views, CivicPlus calendars, generic HTML
-- Each adapter returns `List[Dict]` with standard keys
+- Each adapter returns `List[Dict]` with standard keys + optional `cost_text`, `registration_url`
 
 ### 3. Transform (Gemini AI batch tagging)
 - Events batched in groups of 15 for a single Gemini API call
@@ -176,18 +189,31 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 - Upserts to `events` using natural key: `(title, event_date, venue_id)`
 - Venues created on-the-fly via `get_or_create_venue()`
 - Existing records updated, new records inserted
+- Cost parsing: adapter `cost_text` -> `parse_cost()` -> `cost_cents`; fallback infers from "Free" tag
 
-### 5. Enrich (venue-level geo-enrichment)
+### 5. Normalize (date/time parsing)
+- `date_normalizer.py` parses freeform `event_date` text -> `event_date_start` (Date)
+- 14+ format cascade: ISO, US long/short, day-prefixed, ordinal, embedded time
+- Detects recurring patterns ("Every Saturday") -> sets `is_recurring=True`
+- Never modifies `event_date` text (upsert key depends on it)
+
+### 6. Expand recurring events
+- `recurrence_expander.py` generates concrete child events for next 4 weeks
+- "Every Saturday" -> 4 event rows with specific `event_date_start`, linked via `parent_event_id`
+- Idempotent: checks existing children; cleans up past expansions
+
+### 7. Geocode (venue-level geo-enrichment)
 - **Address mapping:** `update_addresses.py` has a dictionary of 34 known RI locations -> street addresses
 - **Geocoding:** `geocoder.py` geocodes each *venue* once (not each event), writes PostGIS POINT (1 req/sec rate limit)
 
-### 6. Serve (`streamlit run app.py`)
+### 8. Serve (`streamlit run app.py`)
 - User enters ZIP code -> geocoded to lat/lon via Nominatim (cached)
-- JOIN query: `events` -> `venues` to get coordinates
+- JOIN query: `events` -> `venues` to get coordinates + cost/registration/date fields
 - PostGIS `ST_DWithin` filters events within selected radius (server-side)
 - `ST_Distance` calculates exact distance in miles
-- Category + age tag filtering via `st.pills` (multi-select) and Pandas `str.contains()` regex
-- Renders: hero banner, metric cards, side-by-side map + scrollable event cards
+- **Sidebar controls:** ZIP, radius, category pills, age pills, sort (Closest/Soonest), date filter (Today/This Weekend/Next 7/30 Days), cost filter (All/Free Only/Paid OK)
+- **Event cards:** Cost badges (FREE green / $X yellow), recurring badge, "Sign Up" button when registration_url exists
+- Renders: hero banner, metric cards (with Free Events count), side-by-side map + scrollable event cards
 
 ## Source Coverage (as of March 2026)
 
@@ -225,11 +251,12 @@ Streamlit Community Cloud  ──────>  Supabase PostgreSQL+PostGIS
 
 ## UI Design
 - **Light sidebar:** Lavender gradient with accent-colored selected pills, native Streamlit widget contrast
-- **Sidebar controls:** ZIP code input, radius slider (1-50 miles), category pills, age pills
+- **Sidebar controls:** ZIP code input, radius slider (1-50 miles), category pills, age pills, sort (Closest/Soonest), date filter (Any/Today/This Weekend/Next 7 Days/Next 30 Days), cost filter (All/Free Only/Paid OK)
 - **Sidebar forms:** URL submission (per municipality), feedback form (name optional + freetext)
-- **Main area:** Hero banner, metric cards, side-by-side map + scrollable event cards
+- **Main area:** Hero banner, metric cards (Events/Venues/Free Events/Radius), side-by-side map + scrollable event cards
 - **Coverage dashboard:** Expandable section showing all 39 municipalities with color-coded library/recreation status
-- **Event cards:** Title, date/time/distance, tag pills, description snippet, "Get Directions" + "View Source" buttons
+- **Event cards:** Cost badge (FREE green / $X yellow), recurring badge, title, date/time/distance, tag pills, description snippet, "Sign Up" + "Get Directions" + "View Source" buttons
+- **Mobile CSS:** `@media (max-width: 768px)` — wrapping metric cards, compact hero, smaller event cards
 - **Master categories in `st.pills`:** Education, Outdoors, STEM, Arts, Active, Social, Music, Crafts
 - **Age filters in `st.pills`:** Baby (0-2), Preschool (3-5), Kids (6-12), Teens (13-17), All Ages (regex-escaped for filtering)
 
@@ -251,4 +278,4 @@ Streamlit Community Cloud  ──────>  Supabase PostgreSQL+PostGIS
 - **Graceful degradation:** App shows "Database Offline" instead of crashing when DB is down
 - **PostGIS server-side filtering:** `ST_DWithin` instead of client-side distance calc
 - **Migration safety:** `migrate_schema.py` auto-links sources to municipalities if table exists (order-independent)
-- **Test suite:** 27 pytest smoke tests covering models, adapters, municipality registry, and pipeline imports
+- **Test suite:** 29 pytest smoke tests covering models, adapters, municipality registry, and pipeline imports

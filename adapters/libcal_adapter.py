@@ -186,6 +186,25 @@ class LibCalAdapter(BaseAdapter):
         # URL
         source_url = item.get("url", "") or self.website
 
+        # Registration link
+        reg_url = ""
+        for key in ("registration", "signup_url", "register_url"):
+            val = item.get(key)
+            if val and str(val).strip():
+                reg_url = str(val).strip()
+                break
+        # LibCal sometimes embeds registration link in the event URL
+        if not reg_url and item.get("url") and "register" in str(item.get("url", "")).lower():
+            reg_url = str(item["url"]).strip()
+
+        # Cost info
+        cost_text = ""
+        for key in ("cost", "price", "fee"):
+            val = item.get(key)
+            if val is not None and str(val).strip():
+                cost_text = str(val).strip()
+                break
+
         return {
             "title": title,
             "event_date": event_date,
@@ -193,6 +212,8 @@ class LibCalAdapter(BaseAdapter):
             "description": description.strip(),
             "location_name": self._name,
             "source_url": str(source_url).strip(),
+            "cost_text": cost_text,
+            "registration_url": reg_url,
         }
 
     def _scrape_events_page(self, headers: dict) -> List[Dict]:

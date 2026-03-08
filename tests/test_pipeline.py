@@ -29,6 +29,30 @@ def test_enrichment_imports():
     from enrichment.gemini_tagger import tag_events_batch
     from enrichment.geocoder import geocode_venues
     from enrichment.update_addresses import ADDRESS_MAP
+    from enrichment.date_normalizer import normalize_dates, parse_date_text
+    from enrichment.cost_parser import parse_cost, cost_from_tags
     assert callable(tag_events_batch)
     assert callable(geocode_venues)
     assert isinstance(ADDRESS_MAP, dict)
+    assert callable(normalize_dates)
+    assert callable(parse_cost)
+
+
+def test_cost_parser():
+    """Cost parser handles common formats."""
+    from enrichment.cost_parser import parse_cost, cost_from_tags
+
+    assert parse_cost("Free") == ("Free", 0)
+    assert parse_cost("$5") == ("$5", 500)
+    assert parse_cost("$10.50/child") == ("$10.50/child", 1050)
+    assert parse_cost("$0") == ("Free", 0)
+    assert parse_cost("No charge") == ("Free", 0)
+    assert parse_cost("") == (None, None)
+    assert parse_cost(None) == (None, None)
+
+    text, cents = parse_cost("Varies")
+    assert text == "Varies"
+    assert cents is None
+
+    assert cost_from_tags("Arts, Kids (6-12), Free") == ("Free", 0)
+    assert cost_from_tags("STEM, Teens (13-17)") == (None, None)

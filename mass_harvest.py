@@ -22,6 +22,9 @@ from adapters.recdesk_adapter import RecDeskAdapter
 from adapters.wordpress_adapter import WordPressAdapter
 from adapters.drupal_adapter import DrupalAdapter
 from enrichment.gemini_tagger import tag_events_batch
+from enrichment.date_normalizer import normalize_dates
+from enrichment.cost_parser import parse_cost, cost_from_tags
+from enrichment.recurrence_expander import expand_recurring_events
 from enrichment.geocoder import geocode_venues
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -72,6 +75,15 @@ def get_or_create_venue(session, location_name: str, source: Source) -> Venue:
 
 def upsert_event(session, event_dict: dict, venue: Venue, source: Source):
     """Insert or update an event based on (title, event_date, venue_id)."""
+    # Parse cost from adapter-provided text or fall back to tag-based inference
+    cost_text_raw = event_dict.get("cost_text", "")
+    if cost_text_raw:
+        cost_text, cost_cents = parse_cost(cost_text_raw)
+    else:
+        cost_text, cost_cents = cost_from_tags(event_dict.get("tags", ""))
+
+    reg_url = event_dict.get("registration_url", "")
+
     existing = session.query(Event).filter_by(
         title=event_dict["title"],
         event_date=event_dict.get("event_date", ""),
@@ -83,6 +95,11 @@ def upsert_event(session, event_dict: dict, venue: Venue, source: Source):
             val = event_dict.get(key)
             if val:
                 setattr(existing, key, val)
+        if cost_text and not existing.cost_text:
+            existing.cost_text = cost_text
+            existing.cost_cents = cost_cents
+        if reg_url and not existing.registration_url:
+            existing.registration_url = reg_url
         existing.updated_at = datetime.utcnow()
     else:
         session.add(Event(
@@ -94,6 +111,9 @@ def upsert_event(session, event_dict: dict, venue: Venue, source: Source):
             source_url=event_dict.get("source_url", ""),
             venue_id=venue.id,
             source_id=source.id,
+            cost_text=cost_text,
+            cost_cents=cost_cents,
+            registration_url=reg_url or None,
         ))
 
 
@@ -206,9 +226,21 @@ def run():
     log.info(f"  Upserted {total_events} events in {load_elapsed:.1f}s")
 
     # -------------------------------------------------------------------
-    # Phase 4: Geocode venues
+    # Phase 4: Normalize dates
     # -------------------------------------------------------------------
-    log.info("\n--- Phase 4: Geocoding Venues ---")
+    log.info("\n--- Phase 4: Normalizing Dates ---")
+    normalize_dates(session)
+
+    # -------------------------------------------------------------------
+    # Phase 5: Expand recurring events
+    # -------------------------------------------------------------------
+    log.info("\n--- Phase 5: Expanding Recurring Events ---")
+    expand_recurring_events(session)
+
+    # -------------------------------------------------------------------
+    # Phase 6: Geocode venues
+    # -------------------------------------------------------------------
+    log.info("\n--- Phase 6: Geocoding Venues ---")
     geocode_venues(session)
     session.commit()
 
