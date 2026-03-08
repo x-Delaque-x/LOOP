@@ -38,8 +38,8 @@ section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] .stMarkdown {
     color: #e0e0e0 !important;
 }
-/* Sidebar text inputs */
-section[data-testid="stSidebar"] input[type="text"],
+/* Sidebar text inputs (including number-like inputs Streamlit may use) */
+section[data-testid="stSidebar"] input,
 section[data-testid="stSidebar"] textarea {
     background: rgba(255,255,255,0.1) !important;
     border: 1px solid rgba(255,255,255,0.25) !important;
