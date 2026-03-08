@@ -28,17 +28,69 @@ html, body, [class*="css"] {
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
 }
-section[data-testid="stSidebar"] * {
+/* Sidebar text — target headings, paragraphs, labels, spans (not widget internals) */
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] h4,
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] .stMarkdown {
     color: #e0e0e0 !important;
 }
-section[data-testid="stSidebar"] .stTextInput > div > div > input {
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.15);
+/* Sidebar text inputs */
+section[data-testid="stSidebar"] input[type="text"],
+section[data-testid="stSidebar"] textarea {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
     border-radius: 10px;
     color: #fff !important;
 }
-section[data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"] {
+/* Sidebar select boxes */
+section[data-testid="stSidebar"] [data-testid="stSelectbox"] div[data-baseweb="select"] {
+    background: rgba(255,255,255,0.1) !important;
+    border: 1px solid rgba(255,255,255,0.25) !important;
+    border-radius: 10px;
+}
+section[data-testid="stSidebar"] [data-testid="stSelectbox"] div[data-baseweb="select"] * {
+    color: #e0e0e0 !important;
+}
+/* Sidebar slider */
+section[data-testid="stSidebar"] .stSlider label,
+section[data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"],
+section[data-testid="stSidebar"] .stSlider [data-testid="stTickBarMin"],
+section[data-testid="stSidebar"] .stSlider [data-testid="stTickBarMax"] {
+    color: #e0e0e0 !important;
+}
+/* Sidebar pills — white text, semi-transparent background on dark sidebar */
+section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"] {
+    background: rgba(255,255,255,0.1) !important;
+    color: #e0e0e0 !important;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+}
+section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"][aria-checked="true"] {
+    background: #667eea !important;
     color: #fff !important;
+    border-color: #667eea !important;
+}
+/* Sidebar expander */
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary,
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary span {
+    color: #e0e0e0 !important;
+}
+/* Sidebar radio buttons */
+section[data-testid="stSidebar"] .stRadio label span {
+    color: #e0e0e0 !important;
+}
+/* Sidebar buttons */
+section[data-testid="stSidebar"] button[kind="secondary"] {
+    background: rgba(255,255,255,0.15) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+}
+/* Sidebar dividers */
+section[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.15) !important;
 }
 
 /* ---- Hero banner ---- */
