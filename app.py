@@ -190,6 +190,26 @@ button[data-testid="stBaseButton-pills"] {
     padding: 2px 8px; border-radius: 12px; margin-right: 6px;
 }
 
+/* ---- Calendar day headers ---- */
+.cal-day-header {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #667eea;
+    padding: 1rem 0 0.4rem 0;
+    margin-top: 0.2rem;
+    border-bottom: 2px solid #667eea30;
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+.cal-day-count {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: #aaa;
+}
+.cal-today { color: #764ba2; }
+
 /* ---- Empty state ---- */
 .empty-state {
     text-align: center;
@@ -233,7 +253,7 @@ def load_data_spatial(lat, lon, radius_miles):
         query = text('''
             SELECT
                 e.id, e.title, e.event_date, e.event_time, e.description, e.tags,
-                e.event_date_start, e.cost_text, e.cost_cents,
+                e.event_date_start, e.event_time_start, e.cost_text, e.cost_cents,
                 e.registration_url, e.is_recurring, e.recurrence_pattern,
                 v.name as location_name, v.address, e.source_url,
                 ST_Y(v.location::geometry) as latitude,
@@ -540,7 +560,7 @@ st.markdown(f"""
 # ---------------------------------------------------------------------------
 # Tabs: List | Map | Coverage
 # ---------------------------------------------------------------------------
-tab_list, tab_map, tab_coverage = st.tabs(["📋 Events", "🗺️ Map", "📊 Coverage"])
+tab_list, tab_calendar, tab_map, tab_coverage = st.tabs(["📋 Events", "📅 Calendar", "🗺️ Map", "📊 Coverage"])
 
 with tab_list:
     if df.empty:
@@ -560,6 +580,80 @@ with tab_list:
     else:
         for _, row in filtered.iterrows():
             st.markdown(render_event_card(row), unsafe_allow_html=True)
+
+with tab_calendar:
+    if df.empty or filtered.empty:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-icon">📅</div>
+            <p>No events to show. Try adjusting your filters.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        # Within-day sort control
+        day_sort = st.radio(
+            "Sort within each day by",
+            ["Time", "Distance", "Category"],
+            horizontal=True,
+        )
+
+        cal_df = filtered.copy()
+        cal_df['_date'] = pd.to_datetime(cal_df['event_date_start'], errors='coerce').dt.date
+
+        # Sort within each day
+        if day_sort == "Time":
+            cal_df = cal_df.sort_values(
+                ['_date', 'event_time_start'], ascending=[True, True], na_position='last'
+            )
+        elif day_sort == "Distance":
+            cal_df = cal_df.sort_values(
+                ['_date', 'distance_miles'], ascending=[True, True], na_position='last'
+            )
+        else:  # Category
+            cal_df = cal_df.sort_values(
+                ['_date', 'tags'], ascending=[True, True], na_position='last'
+            )
+
+        # Render grouped by day
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+        dated = cal_df[cal_df['_date'].notna()]
+        undated = cal_df[cal_df['_date'].isna()]
+
+        for day in sorted(dated['_date'].unique()):
+            day_events = dated[dated['_date'] == day]
+
+            if day == today:
+                label = "Today"
+                extra_class = "cal-today"
+            elif day == tomorrow:
+                label = "Tomorrow"
+                extra_class = ""
+            else:
+                label = day.strftime("%A, %b") + f" {day.day}"
+                extra_class = ""
+
+            count = len(day_events)
+            st.markdown(
+                f'<div class="cal-day-header {extra_class}">'
+                f'{label}'
+                f'<span class="cal-day-count">{count} event{"s" if count != 1 else ""}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            for _, row in day_events.iterrows():
+                st.markdown(render_event_card(row), unsafe_allow_html=True)
+
+        if not undated.empty:
+            st.markdown(
+                f'<div class="cal-day-header">'
+                f'Date Unknown'
+                f'<span class="cal-day-count">{len(undated)} event{"s" if len(undated) != 1 else ""}</span>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            for _, row in undated.iterrows():
+                st.markdown(render_event_card(row), unsafe_allow_html=True)
 
 with tab_map:
     if filtered.empty:
