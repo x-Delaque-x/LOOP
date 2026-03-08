@@ -2,6 +2,8 @@
 
 A localized data aggregator that centralizes children's and family events across Rhode Island. LOOP autonomously scouts municipal library and recreation calendars, categorizes events using AI, and maps them geospatially through a unified Streamlit dashboard.
 
+**Live app:** Deployed on Streamlit Community Cloud (auto-deploys from this repo).
+
 ## How It Works
 
 ```
@@ -57,26 +59,28 @@ Normalized design: **Municipality -> Source -> Venue -> Event**
 - **venues** — physical locations with PostGIS POINT coordinates (geocoded once)
 - **events** — individual events linked to venues and sources via foreign keys
 - **url_submissions** — crowdsourced calendar URLs from users (pending admin review)
+- **feedback** — user feedback submitted through the dashboard
 
 ## Current Source Coverage
 
-27 of 34 scouted sources are active, 12 currently producing events:
+58 total sources (51 active), 667 events across 38 geocoded venues and 28 scouted municipalities:
 
 | Platform | Sources |
 |----------|---------|
+| **RecDesk** (~19) | NK, Warwick, Cranston, Coventry, Barrington, Cumberland, Lincoln, E. Providence, Johnston, Bristol, Burrillville, and more |
 | **LibCal** (7) | Cranston, Providence, Barrington, East Providence, Cumberland, N. Providence, West Warwick libraries |
-| **RecDesk** (7) | NK, Warwick, Cranston, Coventry, Barrington, Cumberland, Lincoln rec departments |
 | **WhoFi** (1) | North Kingstown Free Library |
 | **CivicPlus** (3) | SK Library, SK Rec, EG Rec |
 | **WordPress** (2) | Woonsocket, Tiverton libraries |
-| **Custom** (7) | Various Drupal/other library sites |
+| **Custom** (7+) | Various Drupal/other library sites, Portsmouth, Richmond |
 
 ## Project Structure
 
 ```
-config.py              - Centralized configuration (DB, API keys, master tags)
-database_manager.py    - SQLAlchemy models: Municipality, Source, Venue, Event, URLSubmission
-app.py                 - Streamlit dashboard with PostGIS spatial queries, coverage, Glass UI
+config.py              - Centralized configuration (DB, API keys, master tags, _get_secret helper)
+database_manager.py    - SQLAlchemy models: Municipality, Source, Venue, Event, URLSubmission, Feedback
+app.py                 - Streamlit dashboard with PostGIS spatial queries, coverage, feedback form
+.streamlit/config.toml - Forces light theme for consistent styling
 mass_harvest.py        - Concurrent ETL pipeline (fetch, batch tag, upsert, geocode)
 migrate_schema.py      - One-time migration: seeds sources/venues from registry
 migrate_municipalities.py - Seeds 39 RI municipalities, links existing sources
@@ -106,12 +110,18 @@ tests/
   test_pipeline.py     - Pipeline component import tests
 ```
 
+## Deployment
+
+- **Production:** Streamlit Community Cloud (auto-deploys from `main` branch)
+- **Database:** Supabase PostgreSQL + PostGIS (free tier, session pooler)
+- **Local ETL:** Docker PostgreSQL for scouting/harvesting, data migrated to Supabase
+
 ## Tech Stack
 
-- **Database:** PostgreSQL 16 + PostGIS 3.4 (Docker)
-- **Frontend:** Streamlit (Glass UI with hero banner, metric cards, event cards)
+- **Database:** PostgreSQL 16 + PostGIS 3.4 (local Docker + Supabase cloud)
+- **Frontend:** Streamlit (light theme, hero banner, metric cards, event cards)
 - **AI:** Google Gemini API (`gemini-2.5-flash` via `google-genai` SDK)
 - **Geocoding:** Geopy (Nominatim/OpenStreetMap)
-- **Scraping:** Requests + BeautifulSoup4
+- **Scraping:** Requests + BeautifulSoup4, Playwright (for JS-rendered pages)
 - **ORM:** SQLAlchemy 2.0 + GeoAlchemy2
 - **Testing:** pytest (27 smoke tests)

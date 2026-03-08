@@ -5,13 +5,16 @@
 
 ## Tech Stack
 - **Language:** Python 3.14
-- **Database:** PostgreSQL 16 + PostGIS 3.4 (Docker container `loop-db`, port 5432)
-- **Frontend:** Streamlit (Glass UI design with PostGIS spatial queries)
+- **Database:** PostgreSQL 16 + PostGIS 3.4
+  - **Local (ETL):** Docker container `loop-db`, port 5432
+  - **Production:** Supabase (free tier), region `us-west-2`, session pooler connection
+- **Frontend:** Streamlit (light theme, deployed on Streamlit Community Cloud)
 - **AI:** Google Gemini API (`gemini-2.5-flash` via `google-genai` SDK)
 - **Geocoding:** Geopy (Nominatim/OpenStreetMap)
-- **Web Scraping:** Requests + BeautifulSoup4
-- **ORM:** SQLAlchemy 2.0 + GeoAlchemy2
-- **Config:** python-dotenv (`.env` file)
+- **Web Scraping:** Requests + BeautifulSoup4, Playwright (for JS-rendered pages like RecDesk)
+- **ORM:** SQLAlchemy 2.0 + GeoAlchemy2 (`pool_pre_ping=True` for connection resilience)
+- **Config:** python-dotenv (`.env` local) + `st.secrets` (Streamlit Cloud) via `_get_secret()` helper
+- **Deployment:** Streamlit Community Cloud (auto-deploy from GitHub `main` branch)
 
 ## Directory Structure
 
@@ -19,8 +22,9 @@
 LOOP/
   .env                     # Secrets: DB creds, Gemini API key (gitignored)
   .env.example             # Template for .env (committed)
-  config.py                # Centralized constants and env loading
-  database_manager.py      # SQLAlchemy models: Municipality, Source, Venue, Event, URLSubmission
+  .streamlit/config.toml   # Forces light theme for Streamlit Cloud
+  config.py                # Centralized constants and env loading (_get_secret for local/.env + cloud/st.secrets)
+  database_manager.py      # SQLAlchemy models: Municipality, Source, Venue, Event, URLSubmission, Feedback
   app.py                   # Streamlit dashboard (PostGIS spatial queries, Glass UI, coverage)
   mass_harvest.py          # ETL orchestration (concurrent fetch + batch tagging)
   migrate_schema.py        # One-time migration: golden_events -> normalized schema
@@ -127,6 +131,15 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 | status | String | pending, approved, rejected |
 | created_at | DateTime | Submission timestamp |
 
+**Table: `feedback`** (user feedback from dashboard)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | Integer (PK) | Auto-incrementing primary key |
+| name | String | Submitter name (optional) |
+| feedback | Text | Feedback content |
+| created_at | DateTime | Submission timestamp |
+
 ## The ETL Pipeline
 
 ```
@@ -178,28 +191,47 @@ Four core tables with foreign key relationships: **Municipality -> Source -> Ven
 
 ## Source Coverage (as of March 2026)
 
-### Confirmed Platforms (27 sources with events)
+58 total sources (51 active), 667 events, 38 geocoded venues across 28 scouted municipalities.
+
+### Confirmed Platforms
 | Platform | Count | Examples |
 |----------|-------|---------|
-| RecDesk | 7 | NK Rec, Warwick, Cranston, Coventry, Barrington, Cumberland, Lincoln |
+| RecDesk | ~19 | NK Rec, Warwick, Cranston, Coventry, Barrington, Cumberland, Lincoln, E. Providence, Johnston, Bristol, Burrillville, and more |
 | LibCal | 7 | Cranston Library, Providence, Barrington, East Providence, Cumberland, N. Providence, West Warwick |
 | WhoFi | 1 | North Kingstown Free Library |
 | CivicPlus | 3 | SK Library, SK Rec, EG Rec |
 | WordPress | 2 | Woonsocket Library, Tiverton Library |
-| Custom/Drupal | 4 | EG Library, Coventry Library, Westerly Library, Rogers Free Library |
-| Unknown | 3 | Warwick Library, Lincoln Library, Middletown Library (hijacked domain) |
+| Custom/Drupal | 4+ | EG Library, Coventry Library, Westerly Library, Rogers Free Library, Portsmouth Library, Richmond Library |
 
-### Unreachable (5 sources - wrong URLs or sites down)
-Narragansett Library, Smithfield Library, Johnston Library, Newport Library, Exeter Library
+### Key Wins from Municipality Scout
+- East Providence Recreation (49 events via Playwright)
+- Johnston Recreation (39 events via Playwright)
+- 24 new sources discovered (5 libraries + 19 recreation departments)
+
+## Deployment Architecture
+
+```
+GitHub (x-Delaque-x/LOOP, main branch)
+    |
+    v  (auto-deploy on push)
+Streamlit Community Cloud  ──────>  Supabase PostgreSQL+PostGIS
+    (app.py, light theme)           (session pooler, us-west-2)
+```
+
+- **Local ETL** runs against local Docker PostgreSQL, then data is migrated to Supabase
+- **Production app** on Streamlit Cloud connects to Supabase via session pooler (IPv4, port 5432)
+- **Secrets:** Local uses `.env`, cloud uses Streamlit secrets (`st.secrets`) — `_get_secret()` abstracts both
+- **Theme:** `.streamlit/config.toml` forces `base = "light"` to match custom CSS
 
 ## UI Design
-- **Glass UI:** Custom CSS with rounded containers, subtle shadows, semi-transparent backgrounds
-- **Sidebar:** ZIP code input, radius slider (1-50 miles), tag pills filter, URL submission form
-- **Main area:** Dynamic map (st.map) + scrollable event cards
+- **Light sidebar:** Lavender gradient with accent-colored selected pills, native Streamlit widget contrast
+- **Sidebar controls:** ZIP code input, radius slider (1-50 miles), category pills, age pills
+- **Sidebar forms:** URL submission (per municipality), feedback form (name optional + freetext)
+- **Main area:** Hero banner, metric cards, side-by-side map + scrollable event cards
 - **Coverage dashboard:** Expandable section showing all 39 municipalities with color-coded library/recreation status
-- **URL submission:** Users can submit calendar URLs for their town (stored in url_submissions, admin reviews)
-- **Event cards:** 3:1 column layout — title/date/tags/description on left, direction/source buttons on right
+- **Event cards:** Title, date/time/distance, tag pills, description snippet, "Get Directions" + "View Source" buttons
 - **Master categories in `st.pills`:** Education, Outdoors, STEM, Arts, Active, Social, Music, Crafts
+- **Age filters in `st.pills`:** Baby (0-2), Preschool (3-5), Kids (6-12), Teens (13-17), All Ages (regex-escaped for filtering)
 
 ## Performance Optimizations
 - **Concurrent fetching:** 6-worker ThreadPoolExecutor runs all adapters in parallel (~27s vs ~120s sequential)
