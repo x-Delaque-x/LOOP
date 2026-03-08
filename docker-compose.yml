@@ -1,0 +1,16 @@
+services:
+  postgis:
+    image: postgis/postgis:16-3.4
+    container_name: loop_postgis
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-loop_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-loop_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-loop_db}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
