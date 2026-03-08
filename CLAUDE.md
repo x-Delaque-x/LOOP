@@ -22,7 +22,7 @@
 ## Key Workflows
 - **Scout:** `py -m scout.discover` — municipality-driven discovery, scouts unscouted towns. Flags: `--rescan`, `--town "Name"`
 - **Harvest:** `py mass_harvest.py` — concurrent fetch (6 workers), batch AI tag, upsert, normalize dates, expand recurring, cleanup stale events, geocode (~2-3 min). Some adapters use Playwright for JS-rendered pages.
-- **Dashboard:** `streamlit run app.py` — Streamlit UI with PostGIS spatial queries, sort/date/cost filters, coverage dashboard, URL/feedback submission forms
+- **Dashboard:** `streamlit run app.py` — Streamlit UI with list-first layout: inline filter bar (Mode/Sort/When/Cost/Category/Audience), tabs (Events/Map/Coverage), Family vs All Events mode toggle
 - **Tests:** `py -m pytest tests/ -v` — 29 smoke tests (models, adapters, municipalities, pipeline, cost parser)
 - **Migrations** (one-time, safe to re-run):
   - `py migrate_add_date_columns.py` — date normalization columns + backfill

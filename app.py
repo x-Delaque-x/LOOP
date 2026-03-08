@@ -11,18 +11,16 @@ from config import APP_NAME, APP_TAGLINE, MASTER_TAGS, AUDIENCE_TAGS, DEFAULT_ZI
 st.set_page_config(page_title=f"{APP_NAME} Explorer", page_icon="🌀", layout="wide")
 
 # ---------------------------------------------------------------------------
-# Custom CSS — modern glass UI
+# Custom CSS
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-/* ---- Global ---- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
-/* Hide default Streamlit chrome */
 #MainMenu, footer {visibility: hidden;}
 
 /* ---- Sidebar ---- */
@@ -33,19 +31,25 @@ section[data-testid="stSidebar"] {
 section[data-testid="stSidebar"] h3 {
     color: #1a1a2e !important;
 }
-/* Selected pills get our accent color */
-section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"][aria-checked="true"] {
+
+/* ---- Accent pills (selected state) ---- */
+button[data-testid="stBaseButton-pills"][aria-checked="true"] {
     background: #667eea !important;
     color: #fff !important;
     border-color: #667eea !important;
+}
+button[data-testid="stBaseButton-pills"] {
+    border-radius: 20px !important;
+    font-size: 0.82rem !important;
+    padding: 4px 14px !important;
 }
 
 /* ---- Hero banner ---- */
 .hero-banner {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     border-radius: 16px;
-    padding: 2rem 2.5rem;
-    margin-bottom: 1.5rem;
+    padding: 1.6rem 2.5rem;
+    margin-bottom: 1rem;
     color: white;
 }
 .hero-banner h1 {
@@ -55,22 +59,40 @@ section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"][aria-c
     letter-spacing: -0.5px;
 }
 .hero-banner p {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     opacity: 0.9;
     margin: 0;
+}
+
+/* ---- Filter bar ---- */
+.filter-bar {
+    background: white;
+    border-radius: 14px;
+    padding: 1rem 1.2rem 0.6rem 1.2rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    border: 1px solid #f0f0f0;
+}
+.filter-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
 }
 
 /* ---- Metric cards row ---- */
 .metric-row {
     display: flex;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 .metric-card {
     flex: 1;
     background: white;
     border-radius: 14px;
-    padding: 1.2rem 1.4rem;
+    padding: 1rem 1.2rem;
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     border: 1px solid #f0f0f0;
     text-align: center;
@@ -81,7 +103,7 @@ section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"][aria-c
     color: #333;
 }
 .metric-card .metric-label {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     color: #888;
     margin-top: 2px;
 }
@@ -132,6 +154,7 @@ section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"][aria-c
     display: flex;
     gap: 0.5rem;
     margin-top: 0.8rem;
+    flex-wrap: wrap;
 }
 .event-actions a {
     display: inline-block;
@@ -143,60 +166,28 @@ section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"][aria-c
     transition: opacity 0.2s;
 }
 .event-actions a:hover { opacity: 0.85; }
-.btn-directions {
-    background: #667eea;
-    color: white !important;
-}
-.btn-source {
-    background: #f0f0f0;
-    color: #444 !important;
-}
-.btn-signup {
-    background: #28a745;
-    color: white !important;
-}
+.btn-directions { background: #667eea; color: white !important; }
+.btn-source    { background: #f0f0f0; color: #444 !important; }
+.btn-signup    { background: #28a745; color: white !important; }
 
-/* ---- Cost & status badges ---- */
+/* ---- Badges ---- */
 .badge-free {
     display: inline-block;
-    background: #d4edda;
-    color: #155724;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 2px 10px;
-    border-radius: 12px;
-    margin-right: 6px;
+    background: #d4edda; color: #155724;
+    font-size: 0.75rem; font-weight: 600;
+    padding: 2px 10px; border-radius: 12px; margin-right: 6px;
 }
 .badge-paid {
     display: inline-block;
-    background: #fff3cd;
-    color: #856404;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 2px 10px;
-    border-radius: 12px;
-    margin-right: 6px;
+    background: #fff3cd; color: #856404;
+    font-size: 0.75rem; font-weight: 600;
+    padding: 2px 10px; border-radius: 12px; margin-right: 6px;
 }
 .badge-recurring {
     display: inline-block;
-    background: #e2e3f1;
-    color: #5a4fcf;
-    font-size: 0.72rem;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 12px;
-    margin-right: 6px;
-}
-
-/* ---- Section headers ---- */
-.section-header {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: #1a1a2e;
-    margin: 1.5rem 0 1rem 0;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #667eea;
-    display: inline-block;
+    background: #e2e3f1; color: #5a4fcf;
+    font-size: 0.72rem; font-weight: 500;
+    padding: 2px 8px; border-radius: 12px; margin-right: 6px;
 }
 
 /* ---- Empty state ---- */
@@ -207,21 +198,6 @@ section[data-testid="stSidebar"] button[data-testid="stBaseButton-pills"][aria-c
 }
 .empty-state .empty-icon { font-size: 3rem; margin-bottom: 0.5rem; }
 .empty-state p { font-size: 1rem; }
-
-/* ---- Map container ---- */
-.map-container {
-    border-radius: 14px;
-    overflow: hidden;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-    margin-bottom: 1.5rem;
-}
-
-/* Pills styling */
-button[data-testid="stBaseButton-pills"] {
-    border-radius: 20px !important;
-    font-size: 0.82rem !important;
-    padding: 4px 14px !important;
-}
 
 /* ---- Mobile responsive ---- */
 @media (max-width: 768px) {
@@ -290,7 +266,6 @@ def render_event_card(row):
     desc = str(row['description']) if pd.notnull(row['description']) else ""
     desc_snippet = desc[:200] + "..." if len(desc) > 200 else desc
 
-    # Cost badge
     cost_badge = ""
     if pd.notnull(row.get('cost_cents')):
         if row['cost_cents'] == 0:
@@ -299,29 +274,26 @@ def render_event_card(row):
             dollars = f"${row['cost_cents'] / 100:.0f}" if row['cost_cents'] % 100 == 0 else f"${row['cost_cents'] / 100:.2f}"
             cost_badge = f'<span class="badge-paid">{dollars}</span>'
 
-    # Recurring badge
     recurring_badge = ""
     if row.get('is_recurring'):
         pattern = row.get('recurrence_pattern', '') or 'Repeating'
         recurring_badge = f'<span class="badge-recurring">{pattern}</span>'
 
-    # Build tag pills
     tags_html = ""
     if pd.notnull(row['tags']) and str(row['tags']).strip():
         for tag in str(row['tags']).split(','):
             tag = tag.strip()
-            if tag and tag != "Free":  # Don't show "Free" as a tag since we have the badge
+            if tag and tag != "Free":
                 tags_html += f'<span class="event-tag">{tag}</span>'
 
-    # Build action buttons
     actions = ""
     if pd.notnull(row.get('registration_url')) and str(row.get('registration_url', '')).strip():
         actions += f'<a href="{row["registration_url"]}" target="_blank" class="btn-signup">Sign Up</a>'
     if pd.notnull(row.get('address')) and str(row.get('address', '')).strip():
         maps_url = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(str(row['address']))}"
-        actions += f'<a href="{maps_url}" target="_blank" class="btn-directions">Get Directions</a>'
+        actions += f'<a href="{maps_url}" target="_blank" class="btn-directions">Directions</a>'
     if pd.notnull(row.get('source_url')) and str(row.get('source_url', '')).strip():
-        actions += f'<a href="{row["source_url"]}" target="_blank" class="btn-source">View Source</a>'
+        actions += f'<a href="{row["source_url"]}" target="_blank" class="btn-source">Source</a>'
 
     return f"""
     <div class="event-card">
@@ -337,38 +309,16 @@ def render_event_card(row):
 
 
 # ---------------------------------------------------------------------------
-# Sidebar
+# Sidebar — location + utility forms only
 # ---------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("### Search")
+    st.markdown("### Find Events")
     zip_code = st.text_input("ZIP Code", value=DEFAULT_ZIP, label_visibility="collapsed",
                               placeholder="Enter ZIP code...")
     radius = st.slider("Radius (miles)", min_value=1, max_value=50, value=15)
 
     st.markdown("---")
-    st.markdown("### Filter by Category")
-    selected_tags = st.pills("Categories", MASTER_TAGS, selection_mode="multi", default=[],
-                              label_visibility="collapsed")
 
-    st.markdown("### Filter by Audience")
-    selected_ages = st.pills("Audience", AUDIENCE_TAGS, selection_mode="multi", default=[],
-                              label_visibility="collapsed")
-
-    st.markdown("### Sort By")
-    sort_option = st.radio("Sort", ["Closest", "Soonest"], horizontal=True,
-                           label_visibility="collapsed")
-
-    st.markdown("### When")
-    date_filter = st.pills("When", ["Any", "Today", "This Weekend", "Next 7 Days", "Next 30 Days"],
-                           default="Any", label_visibility="collapsed")
-
-    st.markdown("### Cost")
-    cost_filter = st.pills("Cost", ["All", "Free Only", "Paid OK"],
-                           default="All", label_visibility="collapsed")
-
-    st.markdown("---")
-
-    # URL Submission Form
     with st.expander("Submit a Source URL"):
         try:
             session = SessionLocal()
@@ -404,7 +354,6 @@ with st.sidebar:
         else:
             st.info("Municipality data not loaded.")
 
-    # Feedback Form
     with st.expander("Give Feedback"):
         fb_name = st.text_input("Your name (optional)", key="fb_name")
         fb_text = st.text_area("What's on your mind?", key="fb_text",
@@ -425,7 +374,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(
         f"<div style='text-align:center; font-size:0.75rem; opacity:0.5; padding-top:1rem;'>"
-        f"{APP_NAME} v1.0 &bull; Rhode Island</div>",
+        f"{APP_NAME} v1.1 &bull; Rhode Island</div>",
         unsafe_allow_html=True
     )
 
@@ -438,7 +387,7 @@ with st.sidebar:
 st.markdown(f"""
 <div class="hero-banner">
     <h1>{APP_NAME}</h1>
-    <p>{APP_TAGLINE} — stay in the loop with events near you across Rhode Island</p>
+    <p>{APP_TAGLINE} — discover events near you across Rhode Island</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -459,36 +408,72 @@ if not home_lat:
 
 df = load_data_spatial(home_lat, home_lon, radius)
 
-if df.empty:
-    st.markdown("""
-    <div class="empty-state">
-        <div class="empty-icon">🔍</div>
-        <p>No events found within that radius. Try increasing the distance.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    st.stop()
+# ---------------------------------------------------------------------------
+# Filter bar
+# ---------------------------------------------------------------------------
+st.markdown('<div class="filter-bar">', unsafe_allow_html=True)
 
-# Apply tag filters
+# Row 1: Mode | Sort | Cost
+r1a, r1b, r1c, r1d = st.columns([2, 1.5, 2, 1.5])
+with r1a:
+    st.markdown('<div class="filter-label">Mode</div>', unsafe_allow_html=True)
+    mode = st.pills("Mode", ["🏠 Family", "🌐 All Events"], default="🏠 Family",
+                    label_visibility="collapsed")
+with r1b:
+    st.markdown('<div class="filter-label">Sort by</div>', unsafe_allow_html=True)
+    sort_option = st.radio("Sort", ["Closest", "Soonest"], horizontal=True,
+                           label_visibility="collapsed")
+with r1c:
+    st.markdown('<div class="filter-label">When</div>', unsafe_allow_html=True)
+    date_filter = st.pills("When", ["Any", "Today", "This Weekend", "Next 7 Days", "Next 30 Days"],
+                           default="Any", label_visibility="collapsed")
+with r1d:
+    st.markdown('<div class="filter-label">Cost</div>', unsafe_allow_html=True)
+    cost_filter = st.pills("Cost", ["All", "Free", "Paid"],
+                           default="All", label_visibility="collapsed")
+
+# Row 2: Category
+st.markdown('<div class="filter-label" style="margin-top:0.7rem;">Category</div>', unsafe_allow_html=True)
+selected_tags = st.pills("Category", MASTER_TAGS, selection_mode="multi", default=[],
+                          label_visibility="collapsed")
+
+# Row 3: Audience
+st.markdown('<div class="filter-label" style="margin-top:0.5rem;">Audience</div>', unsafe_allow_html=True)
+selected_ages = st.pills("Audience", AUDIENCE_TAGS, selection_mode="multi", default=[],
+                          label_visibility="collapsed")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Apply filters
+# ---------------------------------------------------------------------------
 filtered = df.copy()
-if selected_tags:
-    pattern = '|'.join([t.strip() for t in selected_tags])
-    mask = filtered['tags'].fillna('').str.contains(pattern, case=False, regex=True)
-    filtered = filtered[mask]
 
+# Mode filter — Family hides Adults (18+) and Nightlife
+family_mode = mode and "Family" in mode
+if family_mode:
+    adult_mask = filtered['tags'].fillna('').str.contains(
+        r'Adults \(18\+\)|Nightlife', case=False, regex=True
+    )
+    filtered = filtered[~adult_mask]
+
+# Category filter
+if selected_tags:
+    pattern = '|'.join([re.escape(t.strip()) for t in selected_tags])
+    filtered = filtered[filtered['tags'].fillna('').str.contains(pattern, case=False, regex=True)]
+
+# Audience filter
 if selected_ages:
     age_pattern = '|'.join([re.escape(a.strip()) for a in selected_ages])
-    age_mask = filtered['tags'].fillna('').str.contains(age_pattern, case=False, regex=True)
-    filtered = filtered[age_mask]
+    filtered = filtered[filtered['tags'].fillna('').str.contains(age_pattern, case=False, regex=True)]
 
 # Date filter
 if date_filter and date_filter != "Any":
     today = date.today()
     filtered['_date_parsed'] = pd.to_datetime(filtered['event_date_start'], errors='coerce')
-
     if date_filter == "Today":
         filtered = filtered[filtered['_date_parsed'].dt.date == today]
     elif date_filter == "This Weekend":
-        # Saturday=5, Sunday=6
         days_until_sat = (5 - today.weekday()) % 7
         sat = today + timedelta(days=days_until_sat)
         sun = sat + timedelta(days=1)
@@ -501,46 +486,37 @@ if date_filter and date_filter != "Any":
         end = today + timedelta(days=30)
         filtered = filtered[(filtered['_date_parsed'].dt.date >= today) &
                             (filtered['_date_parsed'].dt.date <= end)]
-
     if '_date_parsed' in filtered.columns:
         filtered = filtered.drop(columns=['_date_parsed'])
 
 # Cost filter
-if cost_filter == "Free Only":
+if cost_filter == "Free":
     filtered = filtered[filtered['cost_cents'] == 0]
+elif cost_filter == "Paid":
+    filtered = filtered[filtered['cost_cents'] > 0]
 
 # Sort
 if sort_option == "Soonest":
     filtered = filtered.sort_values(
-        by=['event_date_start', 'distance_miles'],
-        ascending=[True, True],
-        na_position='last'
+        by=['event_date_start', 'distance_miles'], ascending=[True, True], na_position='last'
     ).reset_index(drop=True)
 else:
     filtered = filtered.sort_values(
-        by=['distance_miles', 'event_date_start'],
-        ascending=[True, True],
-        na_position='last'
+        by=['distance_miles', 'event_date_start'], ascending=[True, True], na_position='last'
     ).reset_index(drop=True)
 
-if filtered.empty:
-    st.markdown("""
-    <div class="empty-state">
-        <div class="empty-icon">🏷️</div>
-        <p>No events match those filters. Try removing some tags.</p>
-    </div>
-    """, unsafe_allow_html=True)
-    st.stop()
-
-# Metric cards
+# ---------------------------------------------------------------------------
+# Metric row
+# ---------------------------------------------------------------------------
 unique_venues = filtered['location_name'].nunique()
-free_count = len(filtered[filtered['cost_cents'] == 0]) if 'cost_cents' in filtered.columns else 0
+free_count = int((filtered['cost_cents'] == 0).sum()) if 'cost_cents' in filtered.columns else 0
+mode_label = "Family" if family_mode else "All"
 
 st.markdown(f"""
 <div class="metric-row">
     <div class="metric-card">
         <div class="metric-value">{len(filtered)}</div>
-        <div class="metric-label">Events Found</div>
+        <div class="metric-label">Events</div>
     </div>
     <div class="metric-card">
         <div class="metric-value">{unique_venues}</div>
@@ -548,34 +524,53 @@ st.markdown(f"""
     </div>
     <div class="metric-card">
         <div class="metric-value">{free_count}</div>
-        <div class="metric-label">Free Events</div>
+        <div class="metric-label">Free</div>
     </div>
     <div class="metric-card">
         <div class="metric-value">{radius} mi</div>
-        <div class="metric-label">Search Radius</div>
+        <div class="metric-label">Radius</div>
+    </div>
+    <div class="metric-card">
+        <div class="metric-value">{mode_label}</div>
+        <div class="metric-label">Mode</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
 
-# Map + Events in two columns
-col_map, col_events = st.columns([1, 1], gap="large")
-
-with col_map:
-    st.markdown('<div class="section-header">Event Map</div>', unsafe_allow_html=True)
-    map_data = filtered[['latitude', 'longitude']].rename(columns={'latitude': 'lat', 'longitude': 'lon'})
-    st.map(map_data, use_container_width=True)
-
-with col_events:
-    st.markdown(f'<div class="section-header">Events ({len(filtered)})</div>', unsafe_allow_html=True)
-
-    # Scrollable event list — render each card individually
-    for _, row in filtered.iterrows():
-        st.markdown(render_event_card(row), unsafe_allow_html=True)
-
 # ---------------------------------------------------------------------------
-# Coverage Dashboard
+# Tabs: List | Map | Coverage
 # ---------------------------------------------------------------------------
-with st.expander("RI Municipality Coverage"):
+tab_list, tab_map, tab_coverage = st.tabs(["📋 Events", "🗺️ Map", "📊 Coverage"])
+
+with tab_list:
+    if df.empty:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <p>No events found within that radius. Try increasing the distance.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    elif filtered.empty:
+        st.markdown("""
+        <div class="empty-state">
+            <div class="empty-icon">🏷️</div>
+            <p>No events match those filters. Try adjusting them above.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for _, row in filtered.iterrows():
+            st.markdown(render_event_card(row), unsafe_allow_html=True)
+
+with tab_map:
+    if filtered.empty:
+        st.info("No events to show on map with current filters.")
+    else:
+        map_data = filtered[['latitude', 'longitude']].rename(
+            columns={'latitude': 'lat', 'longitude': 'lon'}
+        )
+        st.map(map_data, use_container_width=True)
+
+with tab_coverage:
     try:
         session = SessionLocal()
         coverage_query = text('''
@@ -591,13 +586,17 @@ with st.expander("RI Municipality Coverage"):
         session.close()
 
         if not cov_df.empty:
-            active_count = len(cov_df[(cov_df['library_status'] == 'active') | (cov_df['recreation_status'] == 'active')])
+            active_count = len(cov_df[
+                (cov_df['library_status'] == 'active') |
+                (cov_df['recreation_status'] == 'active')
+            ])
             total = len(cov_df)
-            st.progress(active_count / total, text=f"{active_count}/{total} municipalities with active sources")
+            st.progress(active_count / total,
+                        text=f"{active_count}/{total} municipalities with active sources")
 
-            # Color-code statuses
-            def status_icon(status):
-                return {"active": "🟢", "scouted": "🟡", "not_scouted": "🔴", "unreachable": "⚫"}.get(status, "⚪")
+            def status_icon(s):
+                return {"active": "🟢", "scouted": "🟡",
+                        "not_scouted": "🔴", "unreachable": "⚫"}.get(s, "⚪")
 
             display = cov_df.copy()
             display['Library'] = display['library_status'].apply(status_icon) + ' ' + display['library_status']
