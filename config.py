@@ -1,4 +1,5 @@
 import os
+from urllib.parse import quote_plus
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -28,7 +29,7 @@ if not DATABASE_URL:
     POSTGRES_HOST = _get_secret("POSTGRES_HOST", "localhost")
     POSTGRES_PORT = _get_secret("POSTGRES_PORT", "5432")
     POSTGRES_DB = _get_secret("POSTGRES_DB", "loop_db")
-    DATABASE_URL = f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
+    DATABASE_URL = f"postgresql://{POSTGRES_USER}:{quote_plus(POSTGRES_PASSWORD)}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 
 # Gemini
 GEMINI_API_KEY = _get_secret("GEMINI_API_KEY")

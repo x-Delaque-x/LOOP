@@ -6,7 +6,7 @@ from geoalchemy2 import Geography
 from datetime import datetime
 from config import DATABASE_URL
 
-engine = create_engine(DATABASE_URL, echo=False)
+engine = create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine)
 Base = declarative_base()
 
