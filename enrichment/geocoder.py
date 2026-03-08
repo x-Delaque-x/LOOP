@@ -23,7 +23,7 @@ def geocode_venues(session):
     geocode the address and update the location column with a PostGIS POINT.
     """
     result = session.execute(
-        text("SELECT id, address FROM venues WHERE address IS NOT NULL AND location IS NULL")
+        text("SELECT id, address, city, state, zip_code FROM venues WHERE address IS NOT NULL AND location IS NULL")
     )
     rows = result.fetchall()
 
@@ -35,9 +35,17 @@ def geocode_venues(session):
     geocoded = 0
     failed = 0
 
-    for row_id, address in rows:
+    for row_id, address, city, state, zip_code in rows:
+        # Build full address string for geocoding
+        full_address = address
+        if city:
+            full_address += f", {city}"
+        if state:
+            full_address += f", {state}"
+        if zip_code:
+            full_address += f" {zip_code}"
         try:
-            location = geolocator.geocode(address)
+            location = geolocator.geocode(full_address)
             if location:
                 session.execute(
                     text("""
@@ -51,10 +59,10 @@ def geocode_venues(session):
                 log.debug(f"  Geocoded: {address} -> ({location.latitude}, {location.longitude})")
             else:
                 failed += 1
-                log.warning(f"  No result for: {address}")
+                log.warning(f"  No result for: {full_address}")
         except Exception as e:
             failed += 1
-            log.warning(f"  Geocoding error for '{address}': {e}")
+            log.warning(f"  Geocoding error for '{full_address}': {e}")
 
         # Respect Nominatim rate limit: 1 request per second
         time.sleep(1)

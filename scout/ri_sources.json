@@ -1,25 +1,5 @@
 [
   {
-    "name": "North Kingstown Free Library",
-    "type": "library",
-    "website": "https://www.nklibrary.org",
-    "platform": "WhoFi",
-    "events_url": "https://northkingstown-ri.whofi.com/calendar/",
-    "api_endpoint": null,
-    "has_events": true,
-    "notes": "The library's main website (Drupal) links directly to an external WhoFi calendar for event listings. The 'Upcoming Events' page on nklibrary.org appears to serve as a redirect or link hub rather than hosting the calendar content itself. Scraping should target the WhoFi URL directly."
-  },
-  {
-    "name": "South Kingstown Public Library",
-    "type": "library",
-    "website": "https://www.skpl.org",
-    "platform": "Custom (CivicPlus)",
-    "events_url": "Not found in HTML (likely /calendar or /events path on skpl.org)",
-    "api_endpoint": "None found related to events in HTML",
-    "has_events": true,
-    "notes": "The website appears to be built on the CivicPlus platform, indicated by the 'cpcDomain' and various CivicPlus-related scripts/assets. While no direct event listings or API endpoints for events are visible in this HTML snippet, it is highly probable that a library website built on such a platform would have a dedicated events calendar. The specific events URL would need to be discovered by navigating the site, common paths being /calendar or /events. Scraping would likely involve parsing the HTML of the calendar page directly."
-  },
-  {
     "name": "Cranston Public Library",
     "type": "library",
     "website": "https://www.cranstonlibrary.org",
@@ -28,6 +8,56 @@
     "api_endpoint": "https://www.cranstonlibrary.org/rss.php?iid=5656&m=month&cid=15394",
     "has_events": true,
     "notes": "The website uses Springshare LibCal for its event calendar. Event data is publicly available via an RSS feed. The HTML itself appears to be the main calendar page, rendering events directly. The RSS feed includes institution ID (iid=5656) and calendar ID (cid=15394) which are typical LibCal identifiers."
+  },
+  {
+    "name": "East Greenwich Free Library",
+    "type": "library",
+    "website": "https://www.eastgreenwichlibrary.org",
+    "platform": "Custom",
+    "events_url": "https://eastgreenwichlibrary.org/events",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "Site runs on Drupal 10. The events are likely rendered directly into the HTML via Drupal's templating system or a module like Views. No obvious external calendar platform or JSON API endpoint found in the provided HTML. Main events page is at /events (canonical link), and a 'Full Calendar' is linked at /calendar. There are also category-specific event pages like /events/adults, /events/kids, /events/teens."
+  },
+  {
+    "name": "East Providence Public Library",
+    "type": "library",
+    "website": "https://www.eastprovidencelibrary.org",
+    "platform": "LibCal",
+    "events_url": "https://eplib.libcal.com/calendar/eppl",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The website uses Drupal and links directly to a Springshare LibCal calendar for its events. Scraping would involve navigating to the LibCal URL and extracting events from that platform. No direct API endpoint for events was found embedded in the provided homepage HTML, though LibCal platforms typically have their own internal APIs."
+  },
+  {
+    "name": "Cumberland Public Library",
+    "type": "library",
+    "website": "https://www.cumberlandlibrary.org",
+    "platform": "LibCal",
+    "events_url": "https://www.cumberlandlibrary.org/events",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "Drupal 10 site using the 'drupal_libcal' module, indicating integration with Springshare LibCal. The canonical URL points to the /events page. Events are likely rendered directly within the Drupal site from LibCal data, so a direct LibCal API endpoint is not explicitly visible in this HTML, but the platform is clearly LibCal."
+  },
+  {
+    "name": "North Kingstown Free Library",
+    "type": "library",
+    "website": "https://www.nklibrary.org",
+    "platform": "WhoFi",
+    "events_url": "https://northkingstown-ri.whofi.com/calendar/",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The library's main website (Drupal) links directly to an external WhoFi calendar for event listings. The 'Upcoming Events' page on nklibrary.org appears to serve as a redirect or link hub rather than hosting the calendar content itself. Scraping should target the WhoFi URL directly."
+  },
+  {
+    "name": "South Kingstown Public Library",
+    "type": "library",
+    "website": "https://www.skpl.org",
+    "platform": "Custom (CivicPlus)",
+    "events_url": "",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The website appears to be built on the CivicPlus platform, indicated by the 'cpcDomain' and various CivicPlus-related scripts/assets. While no direct event listings or API endpoints for events are visible in this HTML snippet, it is highly probable that a library website built on such a platform would have a dedicated events calendar. The specific events URL would need to be discovered by navigating the site, common paths being /calendar or /events. Scraping would likely involve parsing the HTML of the calendar page directly."
   },
   {
     "name": "Providence Public Library",
@@ -50,22 +80,12 @@
     "notes": "The HTML content provided is truncated and does not show the full navigation menu. No specific event calendar platform (e.g., LibCal, WhoFi, Eventbrite) is explicitly identifiable from the provided script or link tags. The site is built with Drupal 10. Given it is a public library, it is highly probable that a public events listing exists, even if not visible in this HTML fragment. The actual site (https://www.warwicklibrary.org) uses Springshare LibCal embedded via an iframe on its /events page."
   },
   {
-    "name": "East Greenwich Free Library",
-    "type": "library",
-    "website": "https://www.eastgreenwichlibrary.org",
-    "platform": "Custom",
-    "events_url": "https://eastgreenwichlibrary.org/events",
-    "api_endpoint": "",
-    "has_events": true,
-    "notes": "Site runs on Drupal 10. The events are likely rendered directly into the HTML via Drupal's templating system or a module like Views. No obvious external calendar platform or JSON API endpoint found in the provided HTML. Main events page is at /events (canonical link), and a 'Full Calendar' is linked at /calendar. There are also category-specific event pages like /events/adults, /events/kids, /events/teens."
-  },
-  {
     "name": "Coventry Public Library",
     "type": "library",
     "website": "https://www.coventrypl.org",
     "platform": "Custom",
     "events_url": "https://www.coventrypl.org/events.html",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "The site appears to be built on Weebly/EditMySite. The 'events.html' page exists but the provided HTML does not contain any recognizable third-party calendar embeds or specific event API endpoints. Events are likely listed directly on the page or using a basic built-in Weebly feature. The available scripts are for general site functionality (Facebook, email marketing, ROI calculator) and not for event management."
   },
@@ -100,24 +120,14 @@
     "notes": "The events calendar is embedded via an iframe from Assabet Interactive (a Springshare LibCal instance). The local events page is https://www.barringtonlibrary.org/events, which contains an iframe loading content from https://assabetinteractive.com/calendar/barringtonlibrary. The site itself runs on Drupal 10."
   },
   {
-    "name": "East Providence Public Library",
-    "type": "library",
-    "website": "https://www.eastprovidencelibrary.org",
-    "platform": "LibCal",
-    "events_url": "https://eplib.libcal.com/calendar/eppl",
+    "name": "Narragansett Recreation",
+    "type": "recreation",
+    "website": "https://www.narragansettri.com/recreation",
+    "platform": "Unknown",
+    "events_url": "https://www.narragansettri.com/recreation",
     "api_endpoint": "",
-    "has_events": true,
-    "notes": "The website uses Drupal and links directly to a Springshare LibCal calendar for its events. Scraping would involve navigating to the LibCal URL and extracting events from that platform. No direct API endpoint for events was found embedded in the provided homepage HTML, though LibCal platforms typically have their own internal APIs."
-  },
-  {
-    "name": "Cumberland Public Library",
-    "type": "library",
-    "website": "https://www.cumberlandlibrary.org",
-    "platform": "LibCal",
-    "events_url": "https://www.cumberlandlibrary.org/events",
-    "api_endpoint": "None found in HTML",
-    "has_events": true,
-    "notes": "Drupal 10 site using the 'drupal_libcal' module, indicating integration with Springshare LibCal. The canonical URL points to the /events page. Events are likely rendered directly within the Drupal site from LibCal data, so a direct LibCal API endpoint is not explicitly visible in this HTML, but the platform is clearly LibCal."
+    "has_events": false,
+    "notes": "The HTML immediately redirects to '/lander'. This content does not display any event information or platform details. Further analysis requires following the redirect to the actual page content."
   },
   {
     "name": "North Providence Union Free Library",
@@ -125,7 +135,7 @@
     "website": "https://www.nprovlib.org",
     "platform": "LibCal",
     "events_url": "https://nprovlib.libcal.com/",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "The website is built with Drupal 10. Event listings are primarily managed and displayed via Springshare LibCal, indicated by the 'libcal.com' URL for the 'Events- List View'. The '/calendar' page on the main site likely embeds or links to this LibCal instance. To scrape events, targeting the LibCal URL directly would be the most effective approach."
   },
@@ -155,7 +165,7 @@
     "website": "https://www.westerlylibrary.org",
     "platform": "Custom",
     "events_url": "https://www.westerlylibrary.org/events",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "The website is built with Drupal 10. Events are likely managed via a Drupal module or custom views. A common URL pattern for events on such sites is /events or /calendar, so /events is a likely candidate for the main events page. No third-party calendar platform (LibCal, WhoFi, etc.) or specific JSON API endpoint for events is identifiable in the provided HTML snippet."
   },
@@ -184,8 +194,8 @@
     "type": "library",
     "website": "https://www.lincolnpubliclibrary.org",
     "platform": "Unknown",
-    "events_url": null,
-    "api_endpoint": null,
+    "events_url": "",
+    "api_endpoint": "",
     "has_events": true,
     "notes": "The site is built on WordPress. However, the provided HTML only contains the <head> section and some inline styles, which does not contain enough information to identify a specific events platform (like LibCal, WhoFi, Eventbrite, or a dedicated WordPress events plugin like The Events Calendar). No specific events URL or JSON API endpoint for event data can be determined from this snippet. As a public library, it is highly probable that the site hosts a public events listing."
   },
@@ -194,8 +204,8 @@
     "type": "library",
     "website": "https://www.middletownpubliclibrary.org",
     "platform": "Unknown",
-    "events_url": null,
-    "api_endpoint": null,
+    "events_url": "",
+    "api_endpoint": "",
     "has_events": false,
     "notes": "The HTML content indicates that this website, despite its domain name 'middletownpubliclibrary.org', is an online gambling site ('Agen Judi Slot Online Terpercaya'). There is no content related to a library, events, or a calendar. Therefore, no events platform, events URL, or API endpoint can be identified, and the site does not appear to have public events listings."
   },
@@ -215,7 +225,7 @@
     "website": "https://www.tivertonlibrary.org",
     "platform": "WordPress Events",
     "events_url": "https://tivertonlibrary.org/events/",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "The website is built on WordPress. The provided HTML is only the <head> section; a full analysis of the <body> would be needed to identify the specific WordPress event plugin used (if any) and potential JSON API endpoints for event data. No specific event data API was found in the head."
   },
@@ -224,8 +234,8 @@
     "type": "library",
     "website": "https://www.rogersfreelibrary.org",
     "platform": "Custom",
-    "events_url": "Not found in provided HTML (likely in navigation)",
-    "api_endpoint": "None found in provided HTML",
+    "events_url": "",
+    "api_endpoint": "",
     "has_events": true,
     "notes": "Site runs on WordPress. The provided HTML is only the <head> section. To determine the exact events platform (if any specific WordPress plugin is used) and the events URL, the <body> content and navigation links would be required. It is highly probable a library website has a public events listing."
   },
@@ -245,7 +255,7 @@
     "website": "https://northkingstown.recdesk.com",
     "platform": "RecDesk",
     "events_url": "https://northkingstown.recdesk.com/community",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "This HTML is a meta refresh redirect to the '/community' page. The base domain 'recdesk.com' identifies the platform. To find event data, follow the redirect to the specified URL."
   },
@@ -254,8 +264,8 @@
     "type": "recreation",
     "website": "https://www.southkingstownri.com/297/Recreation",
     "platform": "CivicPlus",
-    "events_url": "Not found in provided HTML",
-    "api_endpoint": "Not found in provided HTML",
+    "events_url": "",
+    "api_endpoint": "",
     "has_events": true,
     "notes": "Site uses the CivicPlus CMS, as indicated by 'civicplus.com' references and 'cp-' prefixes. The provided HTML is for an 'Affordable Housing Collaborative Committee' page, not an events or recreation calendar page. While this specific HTML does not contain event listings or an events URL, it is highly probable that a Recreation department website built on CivicPlus would have a public events calendar or registration system. To find events, one would typically need to navigate the site for a 'Calendar' or 'Events' link within the CivicPlus site structure. CivicPlus often includes its own integrated event management modules."
   },
@@ -285,7 +295,7 @@
     "website": "https://www.eastgreenwichri.com/197/Parks-Recreation",
     "platform": "CivicPlus",
     "events_url": "https://www.eastgreenwichri.com/198/Recreation-Calendar",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "The website uses the CivicPlus CMS (indicated by 'cp-' prefixes and 'civicplus' references). Events are managed through CivicPlus's integrated calendar module. While the provided HTML snippet is for a 'Personnel' page, the site structure (a local government site, especially Parks & Recreation) strongly suggests and a live check confirms an active 'Recreation Calendar' page. No public JSON API endpoint was identified from the provided HTML or a quick inspection of the live calendar page."
   },
@@ -295,19 +305,9 @@
     "website": "https://coventry.recdesk.com",
     "platform": "RecDesk",
     "events_url": "https://coventry.recdesk.com/community",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "This page is a meta refresh redirect to the RecDesk community portal. The events and calendar information will be found at the redirected URL. RecDesk typically has an internal API, but it's not exposed in this initial redirect."
-  },
-  {
-    "name": "Narragansett Recreation",
-    "type": "recreation",
-    "website": "https://www.narragansettri.com/recreation",
-    "platform": "Unknown",
-    "events_url": "https://www.narragansettri.com/recreation",
-    "api_endpoint": null,
-    "has_events": false,
-    "notes": "The HTML immediately redirects to '/lander'. This content does not display any event information or platform details. Further analysis requires following the redirect to the actual page content."
   },
   {
     "name": "Barrington Recreation",
@@ -315,7 +315,7 @@
     "website": "https://barrington.recdesk.com",
     "platform": "RecDesk",
     "events_url": "https://barrington.recdesk.com/community",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "This page is a meta refresh redirect to the '/community' path on the RecDesk platform. The actual events/programs would be listed on the destination page. RecDesk typically offers structured program listings."
   },
@@ -325,7 +325,7 @@
     "website": "https://cumberland.recdesk.com",
     "platform": "RecDesk",
     "events_url": "https://cumberland.recdesk.com/community",
-    "api_endpoint": null,
+    "api_endpoint": "",
     "has_events": true,
     "notes": "The provided HTML is a meta refresh redirect to /community. The base URL cumberland.recdesk.com strongly indicates RecDesk. To scrape, follow the redirect to the /community page, which is typically the main events/activity listing on RecDesk instances. RecDesk often loads event data dynamically without a single, easily identifiable public JSON API endpoint, but rather fetches data via AJAX calls that mimic form submissions or specific data queries."
   },
@@ -335,8 +335,248 @@
     "website": "https://lincoln.recdesk.com",
     "platform": "RecDesk",
     "events_url": "https://lincoln.recdesk.com/community",
-    "api_endpoint": "None found in HTML",
+    "api_endpoint": "",
     "has_events": true,
     "notes": "The site immediately redirects to /community. RecDesk is a platform for recreation management and typically includes public calendars. Further investigation of the /community page is needed to find specific event listings or API endpoints."
+  },
+  {
+    "name": "Bristol Recreation",
+    "type": "recreation",
+    "website": "https://bristol.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://bristol.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The provided HTML is a redirect. The actual events content is expected at the /community path on the RecDesk domain. Scraping would require following the redirect and parsing the HTML content of the RecDesk platform."
+  },
+  {
+    "name": "Burrillville Recreation",
+    "type": "recreation",
+    "website": "https://burrillville.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://burrillville.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The initial page is a meta refresh redirect to /community. The platform is identified by the recdesk.com domain. You will need to follow the redirect to find event listings and potential API endpoints."
+  },
+  {
+    "name": "Central Falls Recreation",
+    "type": "recreation",
+    "website": "https://centralfalls.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://centralfalls.recdesk.com",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The provided HTML is a redirect. To scrape, follow the redirect to https://centralfalls.recdesk.com/community and analyze that page. RecDesk typically offers program and event listings within its platform."
+  },
+  {
+    "name": "Charlestown Recreation",
+    "type": "recreation",
+    "website": "https://charlestown.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://charlestown.recdesk.com",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The initial URL redirects to /community. RecDesk typically uses paths like /Calendar for event listings. The platform is clearly RecDesk based on the domain."
+  },
+  {
+    "name": "East Providence Recreation",
+    "type": "recreation",
+    "website": "https://eastprovidence.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://eastprovidence.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The initial URL redirects to /community. RecDesk is a dedicated recreation management platform that inherently manages events and programs. To scrape, follow the redirect to the /community page and extract event information from the RecDesk interface. RecDesk usually has structured event listings."
+  },
+  {
+    "name": "Hopkinton Public Library",
+    "type": "library",
+    "website": "https://www.hopkintonlibrary.org",
+    "platform": "WordPress Events",
+    "events_url": "https://hopkintonlibrary.org/calendar/",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "This is a WordPress site with a dedicated calendar page. No specific calendar plugin (like The Events Calendar by Tribe) or its API endpoints were identified directly in this HTML snippet, so scraping the HTML DOM of the events_url will likely be required. The oEmbed API is for content embedding, not event data."
+  },
+  {
+    "name": "Johnston Recreation",
+    "type": "recreation",
+    "website": "https://johnston.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://johnston.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The HTML is a meta refresh redirect to the '/community' path on the RecDesk platform. The actual events content would be found by following this redirect. RecDesk sites typically list events, programs, and activities."
+  },
+  {
+    "name": "Middletown Recreation",
+    "type": "recreation",
+    "website": "https://middletown.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://middletown.recdesk.com",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The provided HTML is a redirect to '/community'. The platform is clearly RecDesk based on the URL. Events and programs are typically available directly on the RecDesk portal, often under a 'Calendar' or 'Programs' section. Further scraping would need to follow the redirect."
+  },
+  {
+    "name": "Newport Recreation",
+    "type": "recreation",
+    "website": "https://newport.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://newport.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The site immediately redirects to /community. RecDesk is a platform for recreation management and typically includes event and program listings. Further crawling of the redirected URL is needed to locate specific event pages or feeds."
+  },
+  {
+    "name": "North Providence Recreation",
+    "type": "recreation",
+    "website": "https://northprovidence.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://northprovidence.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The provided HTML is a meta refresh redirect to /community. The events are expected to be listed on the redirected page. RecDesk typically has activity/program listings on its community or program pages, often requiring direct HTML parsing rather than a public JSON API endpoint."
+  },
+  {
+    "name": "North Smithfield Recreation",
+    "type": "recreation",
+    "website": "https://northsmithfield.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://northsmithfield.recdesk.com",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The provided HTML is a redirect to the '/community' path. The actual events content would need to be fetched from 'https://northsmithfield.recdesk.com/community'. RecDesk sites typically list activities and events under paths like '/Activities' or similar."
+  },
+  {
+    "name": "Pawtucket Recreation",
+    "type": "recreation",
+    "website": "https://pawtucket.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://pawtucket.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "HTML is a redirect to /community. RecDesk is a recreation management platform that typically features event and program listings. Further analysis requires following the redirect to the actual content page."
+  },
+  {
+    "name": "Portsmouth Public Library",
+    "type": "library",
+    "website": "https://www.portsmouthlibrary.org",
+    "platform": "Custom",
+    "events_url": "https://www.portsmouthlibrary.org/calendar",
+    "api_endpoint": "https://www.portsmouthlibrary.org/views/ajax",
+    "has_events": true,
+    "notes": "The website is built with Drupal 7 and uses Drupal's Calendar and Views modules for event management. Events are likely displayed using a calendar view, possibly with AJAX for navigation (e.g., month/week/day changes). The '/views/ajax' endpoint handles AJAX requests for Drupal Views, which would likely return rendered HTML snippets rather than a clean JSON API for events. Scraping would involve parsing HTML from the calendar pages, potentially mimicking AJAX calls if dynamic content loading is used extensively."
+  },
+  {
+    "name": "Portsmouth Recreation",
+    "type": "recreation",
+    "website": "https://portsmouth.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://portsmouth.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The site uses RecDesk, a common platform for recreation departments. The initial URL redirects to the '/community' section, which is a typical entry point for viewing programs and events on RecDesk sites. Scraping will likely involve navigating their HTML pages for program listings and calendars, as a public API is generally not exposed."
+  },
+  {
+    "name": "Providence Recreation",
+    "type": "recreation",
+    "website": "https://providence.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://providence.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "This page is a meta refresh redirect. The actual events content would be found by following the redirect to the /community path."
+  },
+  {
+    "name": "Richmond Public Library",
+    "type": "library",
+    "website": "https://www.richmondlibrary.org",
+    "platform": "CivicPlus",
+    "events_url": "https://www.richmondlibrary.org/calendar",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "Site is built on the CivicPlus platform (indicated by 'cp-' prefixes, 'cpcDomain' and general structure). Events are likely managed via a CivicPlus module, often found at '/calendar' or '/events'. No direct public API endpoint for events is visible in the provided HTML. Scraping would likely involve parsing the HTML from the events page directly."
+  },
+  {
+    "name": "Scituate Public Library",
+    "type": "library",
+    "website": "https://www.scituatelibrary.org",
+    "platform": "WordPress Events",
+    "events_url": "https://scituatelibrary.org/events/",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "Uses WordPress with 'The Events Calendar' plugin (indicated by 'tribe-events' in CSS links). The site has a dedicated events page and pagination ('/events/page/2/'). iCal (https://scituatelibrary.org/events/?ical=1) and RSS (https://scituatelibrary.org/events/feed/) feeds are available. No explicit JSON API endpoint was found in the provided HTML, though 'The Events Calendar' typically exposes a REST API at a path like /wp-json/tribe/events/v1/events/."
+  },
+  {
+    "name": "Smithfield Recreation",
+    "type": "recreation",
+    "website": "https://smithfield.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://smithfield.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "This page is a meta refresh redirect to /community. The platform is RecDesk based on the domain. Scraping will likely involve parsing HTML from the /community page, as RecDesk typically doesn't expose a public JSON API for events."
+  },
+  {
+    "name": "Tiverton Recreation",
+    "type": "recreation",
+    "website": "https://tiverton.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://tiverton.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The provided HTML is a redirect page to /community. The platform is RecDesk based on the domain. To find events, follow the redirect to the /community page, which is expected to contain program listings and a calendar. RecDesk typically has a 'Programs' or 'Calendar' section."
+  },
+  {
+    "name": "Warren Public Library",
+    "type": "library",
+    "website": "https://www.warrenlibrary.org",
+    "platform": "WordPress Events",
+    "events_url": "https://warrenlibrary.org/events/",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The site is built on WordPress, indicated by `xmlrpc.php`, `wp-content`, and `wp-json` references. The page title and canonical URL confirm it's an events page. No specific third-party calendar plugin (like The Events Calendar, LibCal, WhoFi, etc.) is immediately identifiable from the provided HTML header, suggesting it might be a custom WordPress implementation for events or a very basic listing."
+  },
+  {
+    "name": "Warren Recreation",
+    "type": "recreation",
+    "website": "https://warren.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://warren.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "The current page is a meta refresh redirect to '/community'. The site is hosted on RecDesk, which is a platform for recreation management and typically includes public event calendars. Further scraping should follow the redirect to https://warren.recdesk.com/community. Look for a 'Calendar' or 'Events' section on the redirected page."
+  },
+  {
+    "name": "Westerly Recreation",
+    "type": "recreation",
+    "website": "https://westerly.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://westerly.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "Page is a meta refresh redirect to /community. Further requests are needed to access the actual content and events listing on the RecDesk platform."
+  },
+  {
+    "name": "West Warwick Recreation",
+    "type": "recreation",
+    "website": "https://westwarwick.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://westwarwick.recdesk.com/community",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "Page is a meta refresh redirect to /community. RecDesk is a recreation management platform, likely to have events/programs listed there. Follow the redirect to find the actual content."
+  },
+  {
+    "name": "Woonsocket Recreation",
+    "type": "recreation",
+    "website": "https://woonsocket.recdesk.com",
+    "platform": "RecDesk",
+    "events_url": "https://woonsocket.recdesk.com/Calendar",
+    "api_endpoint": "",
+    "has_events": true,
+    "notes": "Page immediately redirects to /community. The domain recdesk.com indicates the RecDesk platform. RecDesk is an activity and facility management system that always includes a calendar/events listing, typically found at the /Calendar path. Further scraping of the redirected page or the /Calendar page would be required to identify specific event data and any underlying AJAX API endpoints."
   }
 ]

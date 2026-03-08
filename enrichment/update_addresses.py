@@ -44,6 +44,12 @@ ADDRESS_MAP = {
     "Barrington Recreation": "283 County Rd, Barrington, RI",
     "Cumberland Recreation": "3140 Diamond Hill Rd, Cumberland, RI 02864",
     "Lincoln Recreation": "652 George Washington Hwy, Lincoln, RI 02865",
+    "East Providence Recreation": "50 Hunts Mills Rd, East Providence, RI 02916",
+    "Johnston Recreation": "1583 Hartford Ave, Johnston, RI 02919",
+    "Portsmouth Public Library": "2658 E Main Rd, Portsmouth, RI 02871",
+    "Richmond Public Library": "1 Beach St, Richmond, RI 02898",
+    "Bristol Recreation": "2 Luther Ave, Bristol, RI 02809",
+    "Burrillville Recreation": "105 Harrisville Main St, Harrisville, RI 02830",
 }
 
 

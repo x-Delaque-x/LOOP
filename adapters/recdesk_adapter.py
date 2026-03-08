@@ -1,9 +1,13 @@
 """
 RecDesk Adapter - Extracts events from recreation departments using the RecDesk platform.
 
-RecDesk exposes a JSON calendar API at /Community/Calendar/GetCalendarItems
-that returns events for a given month/year. A session must be established first
-by visiting the Calendar page to get cookies.
+Strategy order:
+1. JSON Calendar API via requests (fast, no browser)
+2. Playwright browser rendering (for JS-dependent calendar pages)
+3. HTML Programs page scrape (last resort)
+
+Playwright is needed because RecDesk calendar pages render events client-side
+via JavaScript — requests alone gets an empty shell.
 """
 import json
 import logging
@@ -29,7 +33,7 @@ class RecDeskAdapter(BaseAdapter):
         return self._name
 
     def fetch_events(self) -> List[Dict]:
-        """Fetch events from the RecDesk Calendar JSON API."""
+        """Fetch events from RecDesk, trying API first, then Playwright."""
         session = requests.Session()
         session.headers["User-Agent"] = (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -38,18 +42,22 @@ class RecDeskAdapter(BaseAdapter):
 
         base = self.website
 
-        # Strategy 1: Calendar JSON API
+        # Strategy 1: Calendar JSON API (no browser needed)
         events = self._fetch_calendar_api(session, base)
         if events:
             return events
 
-        # Strategy 2: Scrape the Programs page
+        # Strategy 2: Playwright browser rendering
+        events = self._fetch_with_playwright(base)
+        if events:
+            return events
+
+        # Strategy 3: Scrape the Programs page
         events = self._scrape_programs_page(session, base)
         return events
 
     def _fetch_calendar_api(self, session: requests.Session, base: str) -> List[Dict]:
         """Fetch events from the RecDesk Calendar JSON API."""
-        # Establish session by visiting the Calendar page
         try:
             cal_resp = session.get(f"{base}/Community/Calendar", timeout=15)
             if cal_resp.status_code != 200:
@@ -59,12 +67,10 @@ class RecDeskAdapter(BaseAdapter):
             log.debug(f"Failed to access {self._name} calendar: {e}")
             return []
 
-        # Check that this is actually a RecDesk site with GetCalendarItems
         if "GetCalendarItems" not in cal_resp.text:
             log.debug(f"No GetCalendarItems endpoint found for {self._name}")
             return []
 
-        # Fetch events for current month and next month
         api_url = f"{base}/Community/Calendar/GetCalendarItems"
         headers = {
             "Content-Type": "application/json; charset=utf-8",
@@ -112,20 +118,148 @@ class RecDeskAdapter(BaseAdapter):
         log.info(f"Fetched {len(events)} events from {self._name} (RecDesk Calendar API)")
         return events
 
+    def _fetch_with_playwright(self, base: str) -> List[Dict]:
+        """Use Playwright to render the JS calendar and extract events."""
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            log.debug("Playwright not installed, skipping browser rendering")
+            return []
+
+        cal_url = f"{base}/Community/Calendar"
+        events = []
+
+        try:
+            with sync_playwright() as p:
+                browser = p.chromium.launch(headless=True)
+                page = browser.new_page()
+                page.set_default_timeout(30000)
+
+                log.info(f"  Playwright: loading {self._name} calendar...")
+                page.goto(cal_url, wait_until="networkidle")
+
+                # Wait for calendar events to render
+                page.wait_for_timeout(2000)
+
+                # Try to find rendered calendar event elements
+                events = self._extract_from_rendered_page(page, base)
+
+                # If no events on current view, try clicking next month
+                if not events:
+                    try:
+                        next_btn = page.locator("a.fc-next-button, .fc-next-button, [title='Next']").first
+                        if next_btn.is_visible():
+                            next_btn.click()
+                            page.wait_for_timeout(2000)
+                            events = self._extract_from_rendered_page(page, base)
+                    except Exception:
+                        pass
+
+                browser.close()
+
+        except Exception as e:
+            log.warning(f"Playwright failed for {self._name}: {e}")
+            return []
+
+        log.info(f"Fetched {len(events)} events from {self._name} (Playwright)")
+        return events
+
+    def _extract_from_rendered_page(self, page, base: str) -> List[Dict]:
+        """Extract events from the Playwright-rendered DOM."""
+        events = []
+        html = page.content()
+        soup = BeautifulSoup(html, "html.parser")
+
+        # RecDesk calendar events appear as FullCalendar event elements
+        # or as list items in the calendar view
+        event_selectors = [
+            ".fc-event",                    # FullCalendar events
+            ".fc-event-container a",        # FullCalendar event links
+            ".calendar-event",              # Generic calendar events
+            ".event-item",                  # Event list items
+            "[class*='CalendarItem']",      # RecDesk-specific
+        ]
+
+        seen_titles = set()
+        for selector in event_selectors:
+            elements = soup.select(selector)
+            for el in elements:
+                title = el.get_text(strip=True)
+                # Clean up title — remove time prefixes like "10:00 AM - "
+                title = re.sub(r'^\d{1,2}:\d{2}\s*(?:AM|PM)\s*[-–]\s*', '', title).strip()
+                title = re.sub(r'^\d{1,2}:\d{2}\s*(?:AM|PM)\s*', '', title).strip()
+
+                if not title or len(title) < 3 or title in seen_titles:
+                    continue
+                seen_titles.add(title)
+
+                # Try to extract date from data attributes or parent
+                event_date = ""
+                event_time = ""
+
+                # FullCalendar stores dates in data attributes
+                date_attr = el.get("data-date") or el.parent.get("data-date", "") if el.parent else ""
+                if date_attr:
+                    event_date = date_attr[:10]  # YYYY-MM-DD
+
+                # Extract time from the element text
+                time_match = re.search(r'(\d{1,2}:\d{2}\s*(?:AM|PM))', el.get_text())
+                if time_match:
+                    event_time = time_match.group(1)
+
+                href = el.get("href", "")
+                from urllib.parse import urljoin
+                source_url = urljoin(base, href) if href else f"{base}/Community/Calendar"
+
+                events.append({
+                    "title": title,
+                    "event_date": event_date,
+                    "event_time": event_time,
+                    "description": "",
+                    "location_name": self._name,
+                    "source_url": source_url,
+                })
+
+            if events:
+                break
+
+        # Also try intercepting any JSON data embedded in the page
+        if not events:
+            events = self._extract_json_from_page(soup, base)
+
+        return events
+
+    def _extract_json_from_page(self, soup, base: str) -> List[Dict]:
+        """Try to find calendar event JSON embedded in script tags."""
+        events = []
+        for script in soup.find_all("script"):
+            text = script.string or ""
+            # Look for event arrays in script content
+            for match in re.finditer(r'"EventName"\s*:\s*"([^"]+)"', text):
+                title = match.group(1).strip()
+                if title:
+                    events.append({
+                        "title": title,
+                        "event_date": "",
+                        "event_time": "",
+                        "description": "",
+                        "location_name": self._name,
+                        "source_url": f"{base}/Community/Calendar",
+                    })
+        return events
+
     def _parse_calendar_event(self, item: dict) -> Dict:
         """Parse a RecDesk calendar event from the JSON response."""
         title = item.get("EventName", "").strip()
         if not title:
             return {}
 
-        # Parse dates
         event_date = ""
         event_time = ""
 
         start = item.get("StartDate", "")
         if start:
             try:
-                # RecDesk dates are often in /Date(milliseconds)/ format
                 if "/Date(" in str(start):
                     ms = int(re.search(r"/Date\((\d+)", str(start)).group(1))
                     dt = datetime.fromtimestamp(ms / 1000)
@@ -160,7 +294,6 @@ class RecDeskAdapter(BaseAdapter):
 
                 soup = BeautifulSoup(resp.text, "html.parser")
 
-                # Look for program/event links
                 for link in soup.find_all("a", href=re.compile(r"/Community/Program/\d+")):
                     title = link.get_text(strip=True)
                     if title and len(title) > 3:

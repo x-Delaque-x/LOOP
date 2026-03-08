@@ -3,7 +3,7 @@ import pandas as pd
 import urllib.parse
 from geopy.geocoders import Nominatim
 from sqlalchemy import text
-from database_manager import SessionLocal
+from database_manager import SessionLocal, Municipality, URLSubmission, Feedback
 from config import APP_NAME, APP_TAGLINE, MASTER_TAGS, AGE_TAGS, DEFAULT_ZIP
 
 st.set_page_config(page_title=f"{APP_NAME} Explorer", page_icon="🌀", layout="wide")
@@ -289,6 +289,62 @@ with st.sidebar:
                               label_visibility="collapsed")
 
     st.markdown("---")
+
+    # URL Submission Form
+    with st.expander("Submit a Source URL"):
+        try:
+            session = SessionLocal()
+            munis = session.query(Municipality).order_by(Municipality.name).all()
+            muni_names = [m.name for m in munis]
+            session.close()
+        except Exception:
+            muni_names = []
+
+        if muni_names:
+            sub_town = st.selectbox("Municipality", muni_names, key="sub_town")
+            sub_url = st.text_input("Calendar/Events URL", key="sub_url")
+            sub_type = st.radio("Type", ["library", "recreation"], key="sub_type")
+            sub_note = st.text_area("Notes (optional)", key="sub_note")
+            if st.button("Submit URL"):
+                if sub_url:
+                    try:
+                        session = SessionLocal()
+                        muni = session.query(Municipality).filter_by(name=sub_town).first()
+                        session.add(URLSubmission(
+                            municipality_id=muni.id if muni else None,
+                            url=sub_url,
+                            source_type=sub_type,
+                            submitter_note=sub_note,
+                        ))
+                        session.commit()
+                        session.close()
+                        st.success("Submitted! We'll review it soon.")
+                    except Exception as e:
+                        st.error(f"Submission failed: {e}")
+                else:
+                    st.warning("Please enter a URL.")
+        else:
+            st.info("Municipality data not loaded.")
+
+    # Feedback Form
+    with st.expander("Give Feedback"):
+        fb_name = st.text_input("Your name (optional)", key="fb_name")
+        fb_text = st.text_area("What's on your mind?", key="fb_text",
+                               placeholder="Found a bug? Missing your town? Have an idea?")
+        if st.button("Send Feedback"):
+            if fb_text.strip():
+                try:
+                    session = SessionLocal()
+                    session.add(Feedback(name=fb_name.strip() or None, feedback=fb_text.strip()))
+                    session.commit()
+                    session.close()
+                    st.success("Thanks for your feedback!")
+                except Exception as e:
+                    st.error(f"Could not save feedback: {e}")
+            else:
+                st.warning("Please enter some feedback.")
+
+    st.markdown("---")
     st.markdown(
         f"<div style='text-align:center; font-size:0.75rem; opacity:0.5; padding-top:1rem;'>"
         f"{APP_NAME} v1.0 &bull; Rhode Island</div>",
@@ -395,3 +451,41 @@ with col_events:
     # Scrollable event list — render each card individually
     for _, row in filtered.iterrows():
         st.markdown(render_event_card(row), unsafe_allow_html=True)
+
+# ---------------------------------------------------------------------------
+# Coverage Dashboard
+# ---------------------------------------------------------------------------
+with st.expander("RI Municipality Coverage"):
+    try:
+        session = SessionLocal()
+        coverage_query = text('''
+            SELECT m.name, m.county, m.library_status, m.recreation_status,
+                   COUNT(DISTINCT s.id) as source_count
+            FROM municipalities m
+            LEFT JOIN sources s ON s.municipality_id = m.id AND s.is_active = true
+            GROUP BY m.id, m.name, m.county, m.library_status, m.recreation_status
+            ORDER BY m.name
+        ''')
+        result = session.execute(coverage_query)
+        cov_df = pd.DataFrame(result.fetchall(), columns=result.keys())
+        session.close()
+
+        if not cov_df.empty:
+            active_count = len(cov_df[(cov_df['library_status'] == 'active') | (cov_df['recreation_status'] == 'active')])
+            total = len(cov_df)
+            st.progress(active_count / total, text=f"{active_count}/{total} municipalities with active sources")
+
+            # Color-code statuses
+            def status_icon(status):
+                return {"active": "🟢", "scouted": "🟡", "not_scouted": "🔴", "unreachable": "⚫"}.get(status, "⚪")
+
+            display = cov_df.copy()
+            display['Library'] = display['library_status'].apply(status_icon) + ' ' + display['library_status']
+            display['Recreation'] = display['recreation_status'].apply(status_icon) + ' ' + display['recreation_status']
+            display = display.rename(columns={'name': 'Municipality', 'county': 'County', 'source_count': 'Sources'})
+            st.dataframe(display[['Municipality', 'County', 'Library', 'Recreation', 'Sources']],
+                        use_container_width=True, hide_index=True)
+        else:
+            st.info("No municipality data. Run migrate_municipalities.py first.")
+    except Exception as e:
+        st.info(f"Coverage data unavailable: {e}")

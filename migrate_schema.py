@@ -221,6 +221,16 @@ def run():
     # Step 4: Drop old table
     drop_old_table(session)
 
+    # Step 5: Link sources to municipalities if that table exists
+    has_munis = session.execute(text(
+        "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'municipalities')"
+    )).scalar()
+    if has_munis:
+        from migrate_municipalities import link_sources_to_municipalities, update_municipality_statuses
+        link_sources_to_municipalities(session)
+        update_municipality_statuses(session)
+        log.info("Linked new sources to municipalities")
+
     session.close()
 
     log.info("=" * 60)

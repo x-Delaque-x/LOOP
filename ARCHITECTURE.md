@@ -20,13 +20,15 @@ LOOP/
   .env                     # Secrets: DB creds, Gemini API key (gitignored)
   .env.example             # Template for .env (committed)
   config.py                # Centralized constants and env loading
-  database_manager.py      # SQLAlchemy models: Source, Venue, Event (+ GoldenEvent alias)
-  app.py                   # Streamlit dashboard (PostGIS spatial queries, Glass UI)
+  database_manager.py      # SQLAlchemy models: Municipality, Source, Venue, Event, URLSubmission
+  app.py                   # Streamlit dashboard (PostGIS spatial queries, Glass UI, coverage)
   mass_harvest.py          # ETL orchestration (concurrent fetch + batch tagging)
   migrate_schema.py        # One-time migration: golden_events -> normalized schema
+  migrate_municipalities.py # Seeds 39 RI municipalities, links sources
 
   scout/
-    discover.py            # AI-powered source discovery (Gemini analyzes websites)
+    ri_municipalities.py   # Registry of all 39 RI municipalities
+    discover.py            # Municipality-driven source discovery (Gemini analyzes websites)
     ri_sources.json        # Discovered source registry (generated output)
 
   adapters/
@@ -41,11 +43,30 @@ LOOP/
     gemini_tagger.py       # Gemini AI batch tagging (15 events/call)
     update_addresses.py    # location_name -> street address dictionary mapper
     geocoder.py            # Nominatim geocoding -> PostGIS POINT (venue-level)
+
+  tests/
+    test_models.py         # Model imports, columns, relationships, backward-compat alias
+    test_adapters.py       # Adapter instantiation, BaseAdapter abstract check
+    test_municipalities.py # Registry: 39 towns, valid counties, no dupes, sorted
+    test_pipeline.py       # Config/enrichment imports, adapter map completeness
 ```
 
 ## Database Schema (Normalized)
 
-Three tables with foreign key relationships: **Source -> Venue -> Event**
+Four core tables with foreign key relationships: **Municipality -> Source -> Venue -> Event**
+
+**Table: `municipalities`** (all 39 RI municipalities)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | Integer (PK) | Auto-incrementing primary key |
+| name | String (unique) | Municipality name |
+| county | String | RI county (Bristol, Kent, Newport, Providence, Washington) |
+| population | Integer | Census population |
+| has_library | Boolean | Whether the town has a public library |
+| has_recreation | Boolean | Whether the town has a rec department |
+| library_status | String | not_scouted, scouted, active, no_events, unreachable |
+| recreation_status | String | not_scouted, scouted, active, no_events, unreachable |
 
 **Table: `sources`** (calendar data sources)
 
@@ -63,6 +84,7 @@ Three tables with foreign key relationships: **Source -> Venue -> Event**
 | is_active | Boolean | Whether to include in harvest |
 | notes | Text | Discovery notes |
 | last_harvested | DateTime | Last successful harvest timestamp |
+| municipality_id | Integer (FK) | References municipalities.id |
 
 **Table: `venues`** (physical locations, geocoded once)
 
@@ -93,6 +115,18 @@ Three tables with foreign key relationships: **Source -> Venue -> Event**
 | created_at | DateTime | Record creation timestamp |
 | updated_at | DateTime | Last update timestamp |
 
+**Table: `url_submissions`** (crowdsourced URL submissions)
+
+| Column | Type | Description |
+|--------|------|-------------|
+| id | Integer (PK) | Auto-incrementing primary key |
+| municipality_id | Integer (FK) | References municipalities.id |
+| url | String | Submitted calendar/events URL |
+| source_type | String | "library" or "recreation" |
+| submitter_note | Text | Optional note from submitter |
+| status | String | pending, approved, rejected |
+| created_at | DateTime | Submission timestamp |
+
 ## The ETL Pipeline
 
 ```
@@ -100,10 +134,13 @@ Three tables with foreign key relationships: **Source -> Venue -> Event**
 ```
 
 ### 1. Scout (`py -m scout.discover`)
-- Starts with a seed list of 34 RI library/recreation websites
-- Fetches each site's HTML
-- Sends HTML to Gemini to identify the calendar platform (WhoFi, LibCal, RecDesk, etc.)
-- Outputs `scout/ri_sources.json` with platform, events_url, api_endpoint for each source
+- Municipality-driven: reads all 39 RI municipalities from the database
+- For each unscouted municipality, finds library and recreation department URLs
+- **URL resolution** (`find_source_url()`): DB source first -> `KNOWN_SEEDS` fallback -> URL pattern guessing
+- Fetches each site's HTML, sends to Gemini to identify the calendar platform
+- Creates Source records linked to the municipality, updates status (active/scouted/unreachable)
+- Exports results to `scout/ri_sources.json` for backward compatibility
+- Flags: `--rescan` to re-scout all, `--town "Name"` to scout a specific town
 
 ### 2. Extract (`mass_harvest.py` -> adapters, concurrent)
 - Reads active sources from the `sources` DB table
@@ -157,8 +194,10 @@ Narragansett Library, Smithfield Library, Johnston Library, Newport Library, Exe
 
 ## UI Design
 - **Glass UI:** Custom CSS with rounded containers, subtle shadows, semi-transparent backgrounds
-- **Sidebar:** ZIP code input, radius slider (1-50 miles), tag pills filter
+- **Sidebar:** ZIP code input, radius slider (1-50 miles), tag pills filter, URL submission form
 - **Main area:** Dynamic map (st.map) + scrollable event cards
+- **Coverage dashboard:** Expandable section showing all 39 municipalities with color-coded library/recreation status
+- **URL submission:** Users can submit calendar URLs for their town (stored in url_submissions, admin reviews)
 - **Event cards:** 3:1 column layout — title/date/tags/description on left, direction/source buttons on right
 - **Master categories in `st.pills`:** Education, Outdoors, STEM, Arts, Active, Social, Music, Crafts
 
@@ -170,9 +209,14 @@ Narragansett Library, Smithfield Library, Johnston Library, Newport Library, Exe
 - **Full harvest:** ~2-3 minutes (previously ~28 minutes)
 
 ## Key Design Patterns
+- **Municipality-first model:** 39 RI municipalities as the organizing unit; sources linked via FK
 - **Adapter pattern:** All scrapers inherit `BaseAdapter`, return uniform dicts
-- **Normalized schema:** Source -> Venue -> Event with foreign keys (replaces flat golden_events)
+- **Normalized schema:** Municipality -> Source -> Venue -> Event with foreign keys
 - **DB-driven registry:** `mass_harvest.py` reads active sources from `sources` table
 - **Single source of truth:** `config.py` for constants, `sources` table for registry
+- **Coverage tracking:** Municipality status tracks scouting progress (not_scouted/scouted/active/unreachable)
+- **Crowdsourced discovery:** Users submit URLs via Streamlit form, admin reviews in url_submissions table
 - **Graceful degradation:** App shows "Database Offline" instead of crashing when DB is down
 - **PostGIS server-side filtering:** `ST_DWithin` instead of client-side distance calc
+- **Migration safety:** `migrate_schema.py` auto-links sources to municipalities if table exists (order-independent)
+- **Test suite:** 27 pytest smoke tests covering models, adapters, municipality registry, and pipeline imports

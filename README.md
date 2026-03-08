@@ -8,7 +8,7 @@ A localized data aggregator that centralizes children's and family events across
 Scout (discover sources)  ->  Harvest (scrape + AI tag)  ->  Enrich (geocode)  ->  Serve (Streamlit)
 ```
 
-1. **Scout** uses Gemini AI to analyze 34 RI library/rec websites and identify their calendar platforms
+1. **Scout** uses 39 RI municipalities as the organizing unit, then uses Gemini AI to identify each town's calendar platforms
 2. **Harvest** runs platform-specific adapters concurrently (6 workers), then batch-tags with Gemini (15 events/call)
 3. **Enrich** geocodes each venue once via Nominatim, reuses coordinates for all events at that location
 4. **Serve** displays events on an interactive map with distance-based filtering via PostGIS
@@ -37,8 +37,9 @@ cp .env.example .env
 docker compose up -d
 py database_manager.py
 
-# 5. Seed sources and venues into the database
+# 5. Seed sources, venues, and municipalities
 py migrate_schema.py
+py migrate_municipalities.py
 
 # 6. Run the full ETL pipeline (~2-3 minutes)
 py mass_harvest.py
@@ -49,11 +50,13 @@ streamlit run app.py
 
 ## Database Schema
 
-Normalized three-table design: **Source -> Venue -> Event**
+Normalized design: **Municipality -> Source -> Venue -> Event**
 
-- **sources** — calendar data sources (platform, adapter config, active flag)
+- **municipalities** — all 39 RI municipalities with library/recreation scouting status
+- **sources** — calendar data sources (platform, adapter config, active flag, linked to municipality)
 - **venues** — physical locations with PostGIS POINT coordinates (geocoded once)
 - **events** — individual events linked to venues and sources via foreign keys
+- **url_submissions** — crowdsourced calendar URLs from users (pending admin review)
 
 ## Current Source Coverage
 
@@ -72,13 +75,15 @@ Normalized three-table design: **Source -> Venue -> Event**
 
 ```
 config.py              - Centralized configuration (DB, API keys, master tags)
-database_manager.py    - SQLAlchemy models: Source, Venue, Event (+ GoldenEvent alias)
-app.py                 - Streamlit dashboard with PostGIS spatial queries and Glass UI
+database_manager.py    - SQLAlchemy models: Municipality, Source, Venue, Event, URLSubmission
+app.py                 - Streamlit dashboard with PostGIS spatial queries, coverage, Glass UI
 mass_harvest.py        - Concurrent ETL pipeline (fetch, batch tag, upsert, geocode)
 migrate_schema.py      - One-time migration: seeds sources/venues from registry
+migrate_municipalities.py - Seeds 39 RI municipalities, links existing sources
 
 scout/
-  discover.py          - AI-powered source discovery (Gemini analyzes websites)
+  ri_municipalities.py - Registry of all 39 RI municipalities
+  discover.py          - Municipality-driven source discovery (Gemini analyzes websites)
   ri_sources.json      - Discovered source registry (generated)
 
 adapters/
@@ -93,6 +98,12 @@ enrichment/
   gemini_tagger.py     - Gemini AI batch tagging (15 events/call)
   update_addresses.py  - Location name to street address mapper (34 RI venues)
   geocoder.py          - Geopy/Nominatim geocoding (venue-level)
+
+tests/
+  test_models.py       - Database model smoke tests
+  test_adapters.py     - Adapter instantiation tests
+  test_municipalities.py - Municipality registry validation
+  test_pipeline.py     - Pipeline component import tests
 ```
 
 ## Tech Stack
@@ -103,3 +114,4 @@ enrichment/
 - **Geocoding:** Geopy (Nominatim/OpenStreetMap)
 - **Scraping:** Requests + BeautifulSoup4
 - **ORM:** SQLAlchemy 2.0 + GeoAlchemy2
+- **Testing:** pytest (27 smoke tests)
