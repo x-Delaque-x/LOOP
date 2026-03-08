@@ -21,8 +21,9 @@ html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
 }
 
-/* Hide default Streamlit header / footer */
-#MainMenu, footer, header {visibility: hidden;}
+/* Hide default Streamlit chrome but keep sidebar toggle */
+#MainMenu, footer {visibility: hidden;}
+header [data-testid="stToolbar"] {visibility: hidden;}
 
 /* ---- Sidebar ---- */
 section[data-testid="stSidebar"] {
