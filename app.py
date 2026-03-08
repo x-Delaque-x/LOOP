@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 import pandas as pd
 import urllib.parse
@@ -398,7 +399,7 @@ if selected_tags:
     filtered = filtered[mask]
 
 if selected_ages:
-    age_pattern = '|'.join([a.strip() for a in selected_ages])
+    age_pattern = '|'.join([re.escape(a.strip()) for a in selected_ages])
     age_mask = filtered['tags'].fillna('').str.contains(age_pattern, case=False, regex=True)
     filtered = filtered[age_mask]
 
